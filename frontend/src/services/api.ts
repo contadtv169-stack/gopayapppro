@@ -30,7 +30,7 @@ api.interceptors.response.use(
         } catch {
           localStorage.removeItem('gopay_token');
           localStorage.removeItem('gopay_refresh');
-          window.location.href = '/login';
+          window.location.hash = '#/login';
         }
       }
     }

@@ -3,21 +3,11 @@
 <head>
   <meta charset="utf-8">
   <title>GoPay</title>
-  <script>
-    // GitHub Pages SPA redirect - preserves full path
-    var path = location.pathname.replace(/\/gopayapppro/, '') || '/';
-    var search = location.search || '';
-    sessionStorage.redirect = path + search;
-  </script>
 </head>
 <body>
   <script>
-    var target = './index.html';
-    var redirect = sessionStorage.redirect;
-    if (redirect && redirect !== location.pathname) {
-      target += '?r=' + encodeURIComponent(redirect);
-    }
-    location.replace(target);
+    var path = location.pathname.replace(/\/gopayapppro/, '') || '/';
+    location.replace('./index.html#' + path + location.search);
   </script>
 </body>
 </html>
