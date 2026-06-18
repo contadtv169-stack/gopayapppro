@@ -1,10 +1,10 @@
 const CACHE_NAME = 'gopay-v1';
 const urlsToCache = [
-  '/',
-  '/login',
-  '/register',
-  '/dashboard',
-  '/manifest.json',
+  './',
+  './login',
+  './register',
+  './dashboard',
+  './manifest.json',
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,17 +39,16 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handling
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   try {
     const data = event.data.json();
     const options = {
       body: data.message || 'Nova notificação do GoPay',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-96.png',
+      icon: './icons/icon.svg',
+      badge: './icons/icon.svg',
       vibrate: [200, 100, 200],
-      data: { url: data.url || '/dashboard' },
+      data: { url: data.url || './dashboard' },
       actions: [
         { action: 'open', title: 'Abrir' },
         { action: 'close', title: 'Fechar' },
@@ -66,6 +65,6 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   if (event.action === 'open' || !event.action) {
-    event.waitUntil(clients.openWindow(event.notification.data?.url || '/dashboard'));
+    event.waitUntil(clients.openWindow(event.notification.data?.url || './dashboard'));
   }
 });
