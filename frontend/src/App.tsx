@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect, useState } from 'react';
 import Home from './pages/Home';
@@ -14,6 +14,19 @@ import PaymentLinks from './pages/dashboard/PaymentLinks';
 import Settings from './pages/dashboard/Settings';
 import Editor from './pages/dashboard/Editor';
 import api from './services/api';
+
+function SPARedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const redirectPath = params.get('r') || sessionStorage.redirect;
+    if (redirectPath) {
+      sessionStorage.removeItem('redirect');
+      navigate(redirectPath, { replace: true });
+    }
+  }, []);
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('gopay_token');
@@ -42,7 +55,8 @@ function App() {
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-go-500"></div></div>;
 
   return (
-    <BrowserRouter>
+      <BrowserRouter>
+      <SPARedirect />
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { borderRadius: '12px', background: '#1e293b', color: '#fff' } }} />
       <Routes>
         <Route path="/" element={<Home />} />
