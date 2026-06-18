@@ -38,7 +38,7 @@ export class PixGoAdapter implements GatewayAdapter {
         transactionId: d.payment_id,
         status: this.mapStatus(d.status),
         qrCode: d.qr_code,
-        qrCodeBase64: null,
+        qrCodeBase64: undefined,
         copyPaste: d.qr_code,
         paymentLink: d.qr_image_url,
         expiresAt: d.expires_at,

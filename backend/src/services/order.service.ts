@@ -2,13 +2,20 @@ import { supabase } from '../config/supabase';
 
 export class OrderService {
   async list(userId: string, filters?: { status?: string; page?: number; limit?: number }) {
-    let query = supabase.from('orders').select('*, products(name, price)').eq('user_id', userId).order('created_at', { ascending: false });
-    if (filters?.status) query = query.eq('status', filters.status);
     const page = filters?.page || 1;
     const limit = filters?.limit || 20;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
-    const { data, error, count } = await query.range(from, to).select('*', { count: 'exact' });
+
+    let countQuery = supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    let dataQuery = supabase.from('orders').select('*, products(name, price)').eq('user_id', userId).order('created_at', { ascending: false }).range(from, to);
+
+    if (filters?.status) {
+      countQuery = countQuery.eq('status', filters.status);
+      dataQuery = dataQuery.eq('status', filters.status);
+    }
+
+    const [{ count }, { data, error }] = await Promise.all([countQuery, dataQuery]);
     if (error) throw new Error(error.message);
     return { data: data || [], total: count || 0, page, limit };
   }
