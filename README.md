@@ -162,6 +162,29 @@ O GoPay possui um editor visual completo para personalizar a página de checkout
 
 ## 🚢 Deploy
 
+### Frontend (GitHub Pages)
+
+O frontend é automaticamente deployado no **GitHub Pages** via GitHub Actions.
+
+```bash
+# Ative o GitHub Pages no repositório:
+# Settings > Pages > Source: GitHub Actions
+
+# O deploy automático acontece ao fazer push no branch main
+# URL: https://seu-usuario.github.io/gopayapppro/
+```
+
+**Links de Checkout Personalizados:**
+```
+https://seu-dominio.com/checkout/product/meu-produto
+https://seu-dominio.com/checkout/link/meu-link
+```
+
+Para usar domínio personalizado (ex: checkout.gopay.com.br):
+1. Compre um domínio
+2. No repositório: Settings > Pages > Custom domain
+3. Aponte o DNS: CNAME para `seu-usuario.github.io`
+
 ### Backend (Railway/Render/Fly.io)
 
 ```bash
