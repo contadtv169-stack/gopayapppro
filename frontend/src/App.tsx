@@ -27,9 +27,11 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const u = getStoredUser();
-    if (u) setUser(u);
-    setLoading(false);
+    (async () => {
+      const u = await getStoredUser();
+      if (u) setUser(u);
+      setLoading(false);
+    })();
   }, []);
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-go-500"></div></div>;

@@ -1,42 +1,55 @@
-const DEMO_USER = {
-  id: 'demo-user-1',
-  name: 'Vendedor GoPay',
-  email: 'demo@gopay.com.br',
-  business_name: 'Minha Loja',
-  phone: '(11) 99999-8888',
-  document: '12.345.678/0001-90',
-};
+import { supabase } from './supabase';
 
 export async function login(email: string, password: string) {
-  await new Promise(r => setTimeout(r, 800));
-  if (password === '123456') {
-    const tokens = { accessToken: 'demo-token-' + Date.now(), refreshToken: 'demo-refresh-' + Date.now() };
-    localStorage.setItem('gopay_user', JSON.stringify({ ...DEMO_USER, email }));
-    localStorage.setItem('gopay_token', tokens.accessToken);
-    localStorage.setItem('gopay_refresh', tokens.refreshToken);
-    return { user: { ...DEMO_USER, email }, ...tokens };
-  }
-  throw new Error('Credenciais inválidas. Use qualquer email com senha 123456');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message);
+  const user = {
+    id: data.user.id,
+    email: data.user.email!,
+    name: data.user.user_metadata?.name || email.split('@')[0],
+    business_name: data.user.user_metadata?.business_name || '',
+  };
+  localStorage.setItem('gopay_user', JSON.stringify(user));
+  localStorage.setItem('gopay_token', data.session?.access_token || '');
+  localStorage.setItem('gopay_refresh', data.session?.refresh_token || '');
+  return { user, accessToken: data.session?.access_token, refreshToken: data.session?.refresh_token };
 }
 
 export async function register(name: string, email: string, password: string) {
-  await new Promise(r => setTimeout(r, 800));
-  const user = { ...DEMO_USER, id: 'demo-' + Date.now(), name, email };
-  const tokens = { accessToken: 'demo-token-' + Date.now(), refreshToken: 'demo-refresh-' + Date.now() };
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { name } },
+  });
+  if (error) throw new Error(error.message);
+  const user = { id: data.user!.id, email, name, business_name: '' };
   localStorage.setItem('gopay_user', JSON.stringify(user));
-  localStorage.setItem('gopay_token', tokens.accessToken);
-  localStorage.setItem('gopay_refresh', tokens.refreshToken);
-  return { user, ...tokens };
+  localStorage.setItem('gopay_token', data.session?.access_token || '');
+  localStorage.setItem('gopay_refresh', data.session?.refresh_token || '');
+  return { user, accessToken: data.session?.access_token, refreshToken: data.session?.refresh_token };
 }
 
-export function getStoredUser() {
+export async function getStoredUser() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    const local = localStorage.getItem('gopay_user');
+    if (local) return JSON.parse(local);
+    const user = {
+      id: session.user.id,
+      email: session.user.email!,
+      name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
+      business_name: session.user.user_metadata?.business_name || '',
+    };
+    localStorage.setItem('gopay_user', JSON.stringify(user));
+    return user;
+  }
   try {
     const u = localStorage.getItem('gopay_user');
     return u ? JSON.parse(u) : null;
   } catch { return null; }
 }
 
-export function logout() {
+export async function logout() {
+  await supabase.auth.signOut();
   localStorage.removeItem('gopay_user');
   localStorage.removeItem('gopay_token');
   localStorage.removeItem('gopay_refresh');

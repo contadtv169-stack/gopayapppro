@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import { demoProducts, demoOrders, demoLinks, demoCheckout, demoGatewayCreds, getDemoStats } from './demoData';
 
 type DemoHandler = (config: any) => any;
@@ -32,16 +33,25 @@ const handlers: Record<string, Record<string, DemoHandler>> = {
     '/checkout/customization': () => demoCheckout,
   },
   POST: {
-    '/auth/login': (config: any) => {
+    '/auth/login': async (config: any) => {
       const { email, password } = JSON.parse(config.data || '{}');
-      if (email === 'demo@gopay.com.br' && password === '123456') {
-        return { accessToken: 'demo-token', refreshToken: 'demo-refresh', user: { id: 'demo', name: 'Vendedor GoPay', email, business_name: 'Minha Loja' } };
-      }
-      throw new Error('Credenciais inválidas');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return {
+        accessToken: data.session?.access_token,
+        refreshToken: data.session?.refresh_token,
+        user: { id: data.user.id, email: data.user.email, name: data.user.user_metadata?.name || email.split('@')[0] },
+      };
     },
-    '/auth/register': (config: any) => {
-      const { name, email } = JSON.parse(config.data || '{}');
-      return { accessToken: 'demo-token', refreshToken: 'demo-refresh', user: { id: 'demo-' + Date.now(), name, email } };
+    '/auth/register': async (config: any) => {
+      const { name, email, password } = JSON.parse(config.data || '{}');
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+      if (error) throw error;
+      return {
+        accessToken: data.session?.access_token,
+        refreshToken: data.session?.refresh_token,
+        user: { id: data.user!.id, email, name },
+      };
     },
     '/products': (config: any) => {
       const body = JSON.parse(config.data || '{}');

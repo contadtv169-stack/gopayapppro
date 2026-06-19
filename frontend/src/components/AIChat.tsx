@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Lightbulb, Sparkles } from 'lucide-react';
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const SYSTEM_PROMPT = `Você é o assistente virtual do GoPay, uma plataforma de checkout e pagamentos. 
@@ -50,11 +50,6 @@ export function AIChat({ context = 'general', onSuggestion }: { context?: string
     setLoading(true);
 
     try {
-      if (!GROQ_API_KEY) {
-        setMessages(prev => [...prev, { role: 'assistant', content: '❌ Chave da API Groq não configurada. Peça ao administrador para configurar VITE_GROQ_API_KEY nas variáveis de ambiente.' }]);
-        setLoading(false);
-        return;
-      }
       const res = await fetch(GROQ_URL, {
         method: 'POST',
         headers: {
