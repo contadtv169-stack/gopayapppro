@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { DollarSign, LayoutDashboard, Package, ShoppingCart, Link as LinkIcon, Settings, LogOut, Bell, Menu, X, ChevronDown, User, PenSquare } from 'lucide-react';
-import { useEffect } from 'react';
+import { DollarSign, LayoutDashboard, Package, ShoppingCart, Link as LinkIcon, Settings, LogOut, Bell, Menu, X, ChevronDown, User, PenSquare, MessageCircle } from 'lucide-react';
 import api from '../services/api';
+import { logout as authLogout } from '../services/auth';
 import { AIChat } from '../components/AIChat';
 import { PWAInstall } from '../components/PWAInstall';
 
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/dashboard/editor', icon: PenSquare, label: 'Editor' },
   { path: '/dashboard/orders', icon: ShoppingCart, label: 'Pedidos' },
   { path: '/dashboard/links', icon: LinkIcon, label: 'Links' },
+  { path: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
   { path: '/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 
@@ -23,16 +24,11 @@ export default function DashboardLayout({ children, user }: { children: React.Re
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/notifications/unread-count').then(({ data }) => setNotifCount(data.count)).catch(() => {});
-    const interval = setInterval(() => {
-      api.get('/notifications/unread-count').then(({ data }) => setNotifCount(data.count)).catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
+    setNotifCount(3);
   }, []);
 
   const logout = () => {
-    localStorage.removeItem('gopay_token');
-    localStorage.removeItem('gopay_refresh');
+    authLogout();
     navigate('/');
   };
 

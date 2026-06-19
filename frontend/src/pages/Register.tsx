@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DollarSign, Mail, Lock, User, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { register } from '../services/auth';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -17,13 +17,11 @@ export default function Register() {
     if (password.length < 6) return toast.error('Senha deve ter no mínimo 6 caracteres');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/register', { name, email, password });
-      localStorage.setItem('gopay_token', data.accessToken);
-      localStorage.setItem('gopay_refresh', data.refreshToken);
+      await register(name, email, password);
       toast.success('Conta criada com sucesso!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao criar conta');
+      toast.error(error.message || 'Erro ao criar conta');
     } finally {
       setLoading(false);
     }

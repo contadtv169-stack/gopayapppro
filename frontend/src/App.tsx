@@ -13,7 +13,8 @@ import Orders from './pages/dashboard/Orders';
 import PaymentLinks from './pages/dashboard/PaymentLinks';
 import Settings from './pages/dashboard/Settings';
 import Editor from './pages/dashboard/Editor';
-import api from './services/api';
+import WhatsApp from './pages/dashboard/WhatsApp';
+import { getStoredUser, logout } from './services/auth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('gopay_token');
@@ -26,17 +27,9 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('gopay_token');
-    if (token) {
-      api.get('/users/me').then(({ data }) => {
-        setUser(data);
-      }).catch(() => {
-        localStorage.removeItem('gopay_token');
-        localStorage.removeItem('gopay_refresh');
-      }).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    const u = getStoredUser();
+    if (u) setUser(u);
+    setLoading(false);
   }, []);
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-go-500"></div></div>;
@@ -55,6 +48,7 @@ function App() {
         <Route path="/dashboard/orders" element={<ProtectedRoute><DashboardLayout user={user}><Orders /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/links" element={<ProtectedRoute><DashboardLayout user={user}><PaymentLinks /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/editor" element={<ProtectedRoute><DashboardLayout user={user}><Editor /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/dashboard/whatsapp" element={<ProtectedRoute><DashboardLayout user={user}><WhatsApp /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardLayout user={user}><Settings /></DashboardLayout></ProtectedRoute>} />
       </Routes>
     </HashRouter>

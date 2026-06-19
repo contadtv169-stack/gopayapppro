@@ -50,6 +50,11 @@ export function AIChat({ context = 'general', onSuggestion }: { context?: string
     setLoading(true);
 
     try {
+      if (!GROQ_API_KEY) {
+        setMessages(prev => [...prev, { role: 'assistant', content: '❌ Chave da API Groq não configurada. Peça ao administrador para configurar VITE_GROQ_API_KEY nas variáveis de ambiente.' }]);
+        setLoading(false);
+        return;
+      }
       const res = await fetch(GROQ_URL, {
         method: 'POST',
         headers: {

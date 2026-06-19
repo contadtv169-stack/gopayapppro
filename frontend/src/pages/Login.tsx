@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DollarSign, Mail, Lock, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { login } from '../services/auth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -15,13 +15,11 @@ export default function Login() {
     if (!email || !password) return toast.error('Preencha todos os campos');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { email, password });
-      localStorage.setItem('gopay_token', data.accessToken);
-      localStorage.setItem('gopay_refresh', data.refreshToken);
+      const result = await login(email, password);
       toast.success('Login realizado com sucesso!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao fazer login');
+      toast.error(error.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }
