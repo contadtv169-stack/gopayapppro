@@ -36,6 +36,7 @@ export default function DashboardLayout({ children, user }: { children: React.Re
   const [notifList, setNotifList] = useState<any[]>([]);
   const [showNotif, setShowNotif] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [userAvatar, setUserAvatar] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -43,6 +44,13 @@ export default function DashboardLayout({ children, user }: { children: React.Re
     loadNotifs();
     const interval = setInterval(loadNotifs, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const u = localStorage.getItem('gopay_user');
+      if (u) setUserAvatar(JSON.parse(u).avatar_url || '');
+    } catch {}
   }, []);
 
   const loadNotifs = async () => {
@@ -131,7 +139,15 @@ export default function DashboardLayout({ children, user }: { children: React.Re
             </div>
             <div className="relative">
               <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 transition-colors">
-                <div className="w-8 h-8 bg-gradient-to-br from-go-500 to-primary-600 rounded-lg flex items-center justify-center"><User className="w-4 h-4 text-white" /></div>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-go-500 to-primary-600 flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </div>
                 <span className="hidden sm:block text-sm font-medium text-gray-700">{user?.name || 'Usuário'}</span>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
