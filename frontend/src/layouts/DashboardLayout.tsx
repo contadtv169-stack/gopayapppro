@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, ShoppingCart, Link as LinkIcon, Settings, LogOut, 
   Bell, Menu, X, ChevronDown, User, PenSquare, MessageCircle, Download, 
-  Home, Smartphone, Camera
+  Home, Smartphone, Camera, Trophy
 } from 'lucide-react';
 import { logout as authLogout } from '../services/auth';
 import { getUnreadCount, markNotificationRead, getNotifications } from '../services/supabaseData';
@@ -18,6 +18,7 @@ const navItems = [
   { path: '/dashboard/links', icon: LinkIcon, label: 'Links' },
   { path: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
   { path: '/dashboard/camfacial', icon: Camera, label: 'CamFacial' },
+  { path: '/dashboard/placas', icon: Trophy, label: 'Placas' },
   { path: '/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 
@@ -27,6 +28,7 @@ const mobileNav = [
   { path: '/dashboard/orders', icon: ShoppingCart, label: 'Pedidos' },
   { path: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
   { path: '/dashboard/camfacial', icon: Camera, label: 'CamFacial' },
+  { path: '/dashboard/placas', icon: Trophy, label: 'Placas' },
   { path: '/dashboard/settings', icon: Settings, label: 'Ajustes' },
 ];
 

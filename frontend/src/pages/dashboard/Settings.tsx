@@ -13,7 +13,7 @@ const gatewayInfo = {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', business_logo: '', avatar_url: '' });
+  const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', business_logo: '', avatar_url: '', pix_key: '' });
   const [gateways, setGateways] = useState<Record<string, any>>({});
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -119,7 +119,7 @@ export default function Settings() {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[{ key: 'name', label: 'Nome' }, { key: 'email', label: 'Email', disabled: true }, { key: 'phone', label: 'Telefone' }, { key: 'document', label: 'CPF/CNPJ' }, { key: 'business_name', label: 'Nome da Loja' }].map(f => (
+          {[{ key: 'name', label: 'Nome' }, { key: 'email', label: 'Email', disabled: true }, { key: 'phone', label: 'Telefone' }, { key: 'document', label: 'CPF/CNPJ' }, { key: 'pix_key', label: 'Chave Pix' }, { key: 'business_name', label: 'Nome da Loja' }].map(f => (
             <div key={f.key}><label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label><input value={(profile as any)[f.key] || ''} onChange={e => setProfile({ ...profile, [f.key]: e.target.value })} className="input-field" disabled={(f as any).disabled} /></div>
           ))}
         </div>

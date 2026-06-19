@@ -232,3 +232,31 @@ ALTER TABLE gateway_credentials ALTER COLUMN user_id SET DEFAULT auth.uid();
 ALTER TABLE whatsapp_config ALTER COLUMN user_id SET DEFAULT auth.uid();
 ALTER TABLE customizations ALTER COLUMN user_id SET DEFAULT auth.uid();
 ALTER TABLE transactions ALTER COLUMN user_id SET DEFAULT auth.uid();
+
+-- Tabela de placas/metas
+CREATE TABLE IF NOT EXISTS plaques (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  goal_type VARCHAR(20) NOT NULL DEFAULT 'sales',
+  goal_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  current_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  icon VARCHAR(50) DEFAULT 'trophy',
+  color_scheme VARCHAR(20) DEFAULT 'gold',
+  is_unlocked BOOLEAN DEFAULT FALSE,
+  unlocked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE plaques ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "users_select_plaques" ON plaques;
+DROP POLICY IF EXISTS "users_insert_plaques" ON plaques;
+DROP POLICY IF EXISTS "users_update_plaques" ON plaques;
+DROP POLICY IF EXISTS "users_delete_plaques" ON plaques;
+CREATE POLICY "users_select_plaques" ON plaques FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "users_insert_plaques" ON plaques FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "users_update_plaques" ON plaques FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "users_delete_plaques" ON plaques FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_plaques_user_id ON plaques(user_id);

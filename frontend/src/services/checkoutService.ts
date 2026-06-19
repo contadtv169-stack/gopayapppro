@@ -1,19 +1,45 @@
 import { supabase } from './supabase';
 
-function generatePixCode(amount: number, orderId: string) {
-  const merchantKey = 'gopay.pix' + orderId.slice(0, 8);
-  const txid = orderId.slice(0, 25).toUpperCase();
-  const payload = [
-    '000201', '010212', '2683', '0014br.gov.bcb.pix',
-    '01' + ('0' + (merchantKey.length + 2).toString()).slice(-2) + merchantKey,
-    '02' + txid.length.toString().padStart(2, '0') + txid,
-    '52040000', '5303986',
-    '54' + ('0' + (amount.toFixed(2).length + 2).toString()).slice(-2) + amount.toFixed(2),
-    '5802BR', '5905GoPay', '6008BRASILIA',
-    '62140511GoPayPayment',
-    '6304'
-  ].join('');
-  return { copyPaste: payload, qrCodeBase64: '' };
+function crc16(str: string) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+      else crc <<= 1;
+    }
+  }
+  return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+}
+
+function getSellerPixKey() {
+  try {
+    const u = localStorage.getItem('gopay_user');
+    if (u) {
+      const parsed = JSON.parse(u);
+      return parsed.pix_key || parsed.document || parsed.email || '';
+    }
+  } catch {}
+  return '';
+}
+
+function buildPixBRCode(amount: number, txid: string, pixKey: string, merchantName: string, merchantCity: string) {
+  if (!pixKey) pixKey = 'gopay.pix.' + txid.slice(0, 8);
+  const merchant = merchantName.slice(0, 25) || 'GoPay';
+  const city = merchantCity.slice(0, 15) || 'BRASILIA';
+
+  const gui = '0014br.gov.bcb.pix01' + pixKey.length.toString().padStart(2, '0') + pixKey;
+  const txidFormatted = txid.slice(0, 25);
+
+  let payload = '00020101021226' + gui.length.toString().padStart(2, '0') + gui;
+  payload += '520400005303986';
+  payload += '54' + amount.toFixed(2).length.toString().padStart(2, '0') + amount.toFixed(2);
+  payload += '5802BR59' + merchant.length.toString().padStart(2, '0') + merchant;
+  payload += '60' + city.length.toString().padStart(2, '0') + city;
+  payload += '62070503' + txidFormatted.length.toString().padStart(2, '0') + txidFormatted;
+  payload += '6304';
+
+  return payload + crc16(payload);
 }
 
 export async function getCheckoutProduct(slug: string) {
@@ -48,7 +74,10 @@ export async function createCheckoutOrder(params: {
   amount: number;
 }) {
   const orderId = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Date.now().toString(36));
-  const pix = generatePixCode(params.amount, orderId);
+  const pixKey = getSellerPixKey();
+  const pixBrCode = buildPixBRCode(params.amount, orderId, pixKey, 'GoPay', 'BRASILIA');
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixBrCode)}`;
+
   const order = {
     id: orderId,
     user_id: params.seller_id,
@@ -63,14 +92,14 @@ export async function createCheckoutOrder(params: {
     status: 'pending',
     payment_method: 'pix',
     gateway: 'gopay',
-    pix_code: pix.copyPaste,
-    pix_qr: pix.qrCodeBase64,
+    pix_code: pixBrCode,
+    pix_qr: qrUrl,
     expires_at: new Date(Date.now() + 1200 * 1000).toISOString(),
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('orders').insert(order);
   if (error) throw error;
-  return { ...order, copyPaste: pix.copyPaste, qrCodeBase64: pix.qrCodeBase64 };
+  return { ...order, copyPaste: pixBrCode, qrCodeBase64: qrUrl };
 }
 
 export async function getOrderStatus(orderId: string) {

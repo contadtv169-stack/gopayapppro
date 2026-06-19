@@ -16,6 +16,7 @@ import Editor from './pages/dashboard/Editor';
 import WhatsApp from './pages/dashboard/WhatsApp';
 import Notifications from './pages/dashboard/Notifications';
 import CamFacial from './pages/dashboard/CamFacial';
+import Placas from './pages/dashboard/Placas';
 import { getStoredUser, logout } from './services/auth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -56,6 +57,7 @@ function App() {
         <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardLayout user={user}><Settings /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/notifications" element={<ProtectedRoute><DashboardLayout user={user}><Notifications /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/camfacial" element={<ProtectedRoute><DashboardLayout user={user}><CamFacial /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/dashboard/placas" element={<ProtectedRoute><DashboardLayout user={user}><Placas /></DashboardLayout></ProtectedRoute>} />
       </Routes>
     </HashRouter>
   );

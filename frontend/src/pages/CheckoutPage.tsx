@@ -188,9 +188,13 @@ export default function CheckoutPage() {
             ) : (
               <>
                 <div className="flex items-center justify-center gap-2 text-orange-500 font-medium mb-4"><Clock className="w-5 h-5" /><span>Expira em {fmt(timeLeft)}</span></div>
-                <div className="w-48 h-48 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
-                  <DollarSign className="w-16 h-16 text-gray-300" />
-                </div>
+                {payment.qrCodeBase64 ? (
+                  <img src={payment.qrCodeBase64} alt="QR Code Pix" className="w-48 h-48 mx-auto mb-4 rounded-2xl shadow-sm" />
+                ) : (
+                  <div className="w-48 h-48 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <DollarSign className="w-16 h-16 text-gray-300" />
+                  </div>
+                )}
                 {payment.copyPaste && (
                   <div className="bg-gray-50 rounded-xl p-4 mb-6">
                     <p className="text-xs text-gray-500 mb-2">Código Pix Copia e Cola</p>
