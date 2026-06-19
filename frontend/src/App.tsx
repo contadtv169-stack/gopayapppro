@@ -14,6 +14,7 @@ import PaymentLinks from './pages/dashboard/PaymentLinks';
 import Settings from './pages/dashboard/Settings';
 import Editor from './pages/dashboard/Editor';
 import WhatsApp from './pages/dashboard/WhatsApp';
+import Notifications from './pages/dashboard/Notifications';
 import { getStoredUser, logout } from './services/auth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ function App() {
         <Route path="/dashboard/editor" element={<ProtectedRoute><DashboardLayout user={user}><Editor /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/whatsapp" element={<ProtectedRoute><DashboardLayout user={user}><WhatsApp /></DashboardLayout></ProtectedRoute>} />
         <Route path="/dashboard/settings" element={<ProtectedRoute><DashboardLayout user={user}><Settings /></DashboardLayout></ProtectedRoute>} />
+        <Route path="/dashboard/notifications" element={<ProtectedRoute><DashboardLayout user={user}><Notifications /></DashboardLayout></ProtectedRoute>} />
       </Routes>
     </HashRouter>
   );
