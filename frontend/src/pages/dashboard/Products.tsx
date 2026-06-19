@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Copy, ExternalLink, PenSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/supabaseData';
 
+const BASE_URL = 'https://contadtv169-stack.github.io/gopayapppro';
+
 export default function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -63,9 +67,15 @@ export default function Products() {
               </span>
             </div>
             <p className="text-lg font-bold text-go-600 mb-3">R$ {Number(p.price).toFixed(2)}</p>
+            <div className="flex items-center gap-1 mb-2">
+              <input readOnly value={`${BASE_URL}/#/checkout/product/${p.id}`} className="text-[10px] bg-gray-50 rounded-lg px-2 py-1 flex-1 truncate" />
+              <button onClick={() => { navigator.clipboard.writeText(`${BASE_URL}/#/checkout/product/${p.id}`); toast.success('Link copiado!'); }} className="p-1 hover:bg-gray-100 rounded flex-shrink-0"><Copy className="w-3 h-3 text-gray-400" /></button>
+              <a href={`${BASE_URL}/#/checkout/product/${p.id}`} target="_blank" className="p-1 hover:bg-gray-100 rounded flex-shrink-0"><ExternalLink className="w-3 h-3 text-gray-500" /></a>
+            </div>
             <div className="flex items-center justify-between pt-3 border-t border-gray-100">
               <span className="text-xs text-gray-400">{p.sales_count || 0} vendas</span>
               <div className="flex gap-1">
+                <button onClick={() => navigate(`/dashboard/editor?product=${p.id}`)} className="p-1.5 hover:bg-go-50 rounded-lg" title="Personalizar checkout"><PenSquare className="w-4 h-4 text-go-500" /></button>
                 <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit2 className="w-4 h-4 text-gray-500" /></button>
                 <button onClick={() => remove(p.id)} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4 text-red-400" /></button>
               </div>

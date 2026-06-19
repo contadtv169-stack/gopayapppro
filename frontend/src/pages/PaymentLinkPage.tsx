@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { getCheckoutLink, createCheckoutOrder, getOrderStatus } from '../services/checkoutService';
 
 export default function PaymentLinkPage() {
   const { slug } = useParams();
@@ -18,14 +18,20 @@ export default function PaymentLinkPage() {
 
   useEffect(() => {
     if (!slug) return;
-    api.get(`/checkout/link/${slug}`).then(({ data }) => { setLink(data); setLoading(false); })
-      .catch(() => { setLoading(false); setError('Link não encontrado'); });
+    (async () => {
+      const l = await getCheckoutLink(slug);
+      if (!l) { setLoading(false); setError('Link não encontrado'); return; }
+      setLink(l);
+      setLoading(false);
+    })();
   }, [slug]);
 
   useEffect(() => {
     if (!payment || orderStatus === 'paid') return;
     const interval = setInterval(async () => {
-      try { const { data } = await api.get(`/checkout/order/${payment.orderId}/status`); setOrderStatus(data.status); if (data.status === 'paid') clearInterval(interval); } catch {}
+      const s = await getOrderStatus(payment.orderId);
+      setOrderStatus(s);
+      if (s === 'paid') clearInterval(interval);
     }, 3000);
     return () => clearInterval(interval);
   }, [payment, orderStatus]);
@@ -42,9 +48,18 @@ export default function PaymentLinkPage() {
     if (!customer.name) return toast.error('Nome é obrigatório');
     setProcessing(true);
     try {
-      const { data } = await api.post(`/checkout/link/${slug}`, customer);
-      setPayment(data); setOrderStatus(data.status);
-    } catch (err: any) { setError(err.response?.data?.error || 'Erro ao processar'); } finally { setProcessing(false); }
+      const order = await createCheckoutOrder({
+        payment_link_id: link.id,
+        seller_id: link.user_id,
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        customer_document: customer.document,
+        amount: Number(link.amount),
+      });
+      setPayment(order);
+      setOrderStatus(order.status);
+    } catch (err: any) { setError(err.message || 'Erro ao processar'); } finally { setProcessing(false); }
   };
 
   const copyPix = () => {
@@ -65,7 +80,6 @@ export default function PaymentLinkPage() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 bg-gradient-to-br from-go-500 to-primary-600 text-white px-4 py-2 rounded-xl text-lg font-bold"><DollarSign className="w-6 h-6" /> GoPay</div>
-          {link?.users && <p className="text-gray-500 text-sm mt-2">{link.users.business_name}</p>}
         </div>
         {link && !payment && (
           <div className="card">
@@ -98,7 +112,9 @@ export default function PaymentLinkPage() {
             ) : (
               <>
                 <div className="flex items-center justify-center gap-2 text-orange-500 font-medium mb-4"><Clock className="w-5 h-5" /><span>Expira em {fmt(timeLeft)}</span></div>
-                {payment.qrCodeBase64 && <img src={payment.qrCodeBase64} alt="QR" className="w-48 h-48 mx-auto mb-4" />}
+                <div className="w-48 h-48 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                  <DollarSign className="w-16 h-16 text-gray-300" />
+                </div>
                 {payment.copyPaste && (
                   <div className="bg-gray-50 rounded-xl p-4 mb-6">
                     <p className="text-xs text-gray-500 mb-2">Código Pix Copia e Cola</p>

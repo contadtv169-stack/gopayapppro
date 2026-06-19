@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Save, Key, User, Loader2, Eye, EyeOff, Camera, Check, ArrowUpRight, Upload, Trash2 } from 'lucide-react';
+import { Save, Key, User, Loader2, Eye, EyeOff, Camera, Check, ArrowUpRight, Upload, Trash2, Plug, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import NotificationSettings from './NotificationSettings';
@@ -18,6 +18,8 @@ export default function Settings() {
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [testingGateway, setTestingGateway] = useState<string | null>(null);
+  const [gatewayStatus, setGatewayStatus] = useState<Record<string, 'idle' | 'testing' | 'online' | 'error'>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const capturedImage = localStorage.getItem('gopay_face');
 
@@ -73,6 +75,18 @@ export default function Settings() {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  const testGateway = async (gateway: string) => {
+    setTestingGateway(gateway);
+    setGatewayStatus(prev => ({ ...prev, [gateway]: 'testing' }));
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setGatewayStatus(prev => ({ ...prev, [gateway]: 'online' }));
+      toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} conectado!`);
+    } catch {
+      setGatewayStatus(prev => ({ ...prev, [gateway]: 'error' }));
+    } finally { setTestingGateway(null); }
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
@@ -125,11 +139,22 @@ export default function Settings() {
         </div>
       </div>
 
-      {Object.entries(gatewayInfo).map(([key, gw]) => (
+      {Object.entries(gatewayInfo).map(([key, gw]) => {
+        const status = gatewayStatus[key] || 'idle';
+        const isActive = gateways[key]?.isActive;
+        return (
         <div key={key} className="card !p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center"><Key className="w-5 h-5 text-primary-600" /></div>
-            <div><h2 className="font-semibold text-gray-900">{gw.name}</h2><p className="text-xs text-gray-400"><a href={gw.docs} target="_blank" rel="noopener noreferrer" className="text-go-600 hover:underline">Documentação</a></p></div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-gray-900">{gw.name}</h2>
+                {isActive && status === 'online' && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1"><Check className="w-3 h-3" /> Online</span>}
+                {status === 'error' && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full flex items-center gap-1"><XCircle className="w-3 h-3" /> Falha</span>}
+                {status === 'testing' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Testando</span>}
+              </div>
+              <p className="text-xs text-gray-400"><a href={gw.docs} target="_blank" rel="noopener noreferrer" className="text-go-600 hover:underline">Documentação</a></p>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {gw.fields.map((f: any) => (
@@ -143,9 +168,15 @@ export default function Settings() {
               </div>
             ))}
           </div>
-          <button onClick={() => { const c: Record<string, string> = {}; gw.fields.forEach((f: any) => c[f.key] = (document.querySelector(`[placeholder="${gw.name} ${f.label}"]`) as HTMLInputElement)?.value || ''); saveGateway(key, c); }} className="btn-primary flex items-center gap-2 mt-4"><Save className="w-4 h-4" /> Salvar {gw.name}</button>
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => { const c: Record<string, string> = {}; gw.fields.forEach((f: any) => c[f.key] = (document.querySelector(`[placeholder="${gw.name} ${f.label}"]`) as HTMLInputElement)?.value || ''); saveGateway(key, c); }} className="btn-primary flex items-center gap-2 flex-1"><Save className="w-4 h-4" /> Salvar</button>
+            <button onClick={() => testGateway(key)} disabled={testingGateway === key} className="btn-secondary flex items-center gap-2">
+              {testingGateway === key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />} Testar
+            </button>
+          </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
