@@ -212,3 +212,13 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_payment_links_slug ON payment_links(slug);
+
+-- Apply defaults to existing tables (safe to run multiple times)
+ALTER TABLE products ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE orders ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE payment_links ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE notifications ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE gateway_credentials ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE whatsapp_config ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE customizations ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE transactions ALTER COLUMN user_id SET DEFAULT auth.uid();

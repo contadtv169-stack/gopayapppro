@@ -4,7 +4,7 @@ import {
   Palette, Image, Type, Video, Layout, Star, HelpCircle, 
   Eye, EyeOff, Save, Upload, Plus, Trash2, GripVertical,
   ChevronDown, ChevronUp, Monitor, Smartphone, 
-  X, Check, Move, Play, Link, Loader2
+  X, Check, Move, Play, Link, Loader2, DollarSign, Package
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AIChat } from '../../components/AIChat';
@@ -569,34 +569,48 @@ export default function Editor() {
             <div className="bg-white px-4 py-2 border-b border-gray-100 text-center text-xs text-gray-400 flex-shrink-0">
               {preview ? 'Prévia do Checkout' : 'Prévia'} {previewDevice === 'mobile' ? '(Mobile)' : '(Desktop)'}
             </div>
-            <div className="flex-1 overflow-y-auto bg-white">
-              {/* Preview Content */}
+              <div className="flex-1 overflow-y-auto bg-white">
+              {/* Preview Content - Realistic Checkout */}
               <div style={{ backgroundColor: config.background_color, color: config.text_color }}>
                 {/* Banner */}
                 {config.banner_type === 'image' && config.banner_url && (
-                  <img src={config.banner_url} alt="Banner" className="w-full h-40 object-cover" />
+                  <img src={config.banner_url} alt="Banner" className="w-full h-40 sm:h-48 object-cover" />
                 )}
                 {config.banner_type === 'color' && config.banner_color && (
-                  <div className="w-full h-32" style={{ backgroundColor: config.banner_color }} />
+                  <div className="w-full h-32 sm:h-40" style={{ backgroundColor: config.banner_color }} />
                 )}
                 {config.banner_type === 'gradient' && (
-                  <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start}, ${config.banner_gradient_end})` }} />
+                  <div className="w-full h-32 sm:h-40" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start}, ${config.banner_gradient_end})` }} />
                 )}
 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Logo */}
                   {config.logo_url && (
                     <div className={`flex justify-${config.logo_position} mb-6`}>
-                      <img src={config.logo_url} alt="Logo" className="max-h-12 object-contain" />
+                      <img src={config.logo_url} alt="Logo" className="max-h-14 object-contain" />
                     </div>
                   )}
 
-                  {/* White Label / Branding */}
+                  {/* GoPay Badge */}
                   {!config.hide_gopay_branding && !config.white_label && (
-                    <div className="text-center mb-4">
-                      <span className="text-xs text-gray-400">Powered by GoPay</span>
+                    <div className="text-center mb-6">
+                      <div className="inline-flex items-center gap-2 bg-gradient-to-br from-go-500 to-primary-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm">
+                        <DollarSign className="w-4 h-4" /> GoPay
+                      </div>
                     </div>
                   )}
+
+                  {/* Product Card */}
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-6">
+                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                      <Package className="w-16 h-16 text-gray-300" />
+                    </div>
+                    <div className="p-5">
+                      <h2 className="text-xl font-bold text-gray-900 mb-1">Nome do Produto</h2>
+                      <p className="text-sm text-gray-500 mb-4">Descrição do produto aparecerá aqui</p>
+                      <div className="text-3xl font-extrabold mb-4" style={{ color: config.primary_color }}>R$ 97,00</div>
+                    </div>
+                  </div>
 
                   {/* Video */}
                   {config.video_url && (
@@ -609,13 +623,13 @@ export default function Editor() {
 
                   {/* Quiz */}
                   {config.quiz_enabled && config.quiz_questions.length > 0 && (
-                    <div className="mb-6 border border-gray-200 rounded-xl p-4">
-                      <h3 className="font-semibold mb-3">{config.quiz_title}</h3>
+                    <div className="mb-6 bg-white rounded-2xl border border-gray-100 p-4">
+                      <h3 className="font-semibold mb-3" style={{ color: config.text_color }}>{config.quiz_title}</h3>
                       {config.quiz_questions.slice(0, 1).map((q: any, idx: number) => (
                         <div key={idx} className="space-y-2">
                           <p className="text-sm font-medium">{q.question}</p>
                           {q.options.map((opt: string, oi: number) => (
-                            <label key={oi} className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:border-go-200 cursor-pointer">
+                            <label key={oi} className="flex items-center gap-2 p-3 rounded-xl border border-gray-100 hover:border-go-200 cursor-pointer transition-all">
                               <input type="radio" name={`quiz-${idx}`} className="text-go-500" />
                               <span className="text-sm">{opt}</span>
                             </label>
@@ -627,24 +641,28 @@ export default function Editor() {
 
                   {/* Gallery */}
                   {config.gallery_images.length > 0 && (
-                    <div className={`mb-6 grid ${config.gallery_layout === 'grid' ? 'grid-cols-2 gap-2' : config.gallery_layout === 'carousel' ? 'grid-cols-1 gap-2' : 'grid-cols-1 gap-2'}`}>
+                    <div className={`mb-6 grid ${config.gallery_layout === 'grid' ? 'grid-cols-2 gap-2' : 'grid-cols-1 gap-2'}`}>
                       {config.gallery_images.slice(0, 4).map((img, idx) => (
-                        <img key={idx} src={img} alt="" className="rounded-xl w-full h-24 object-cover" />
+                        <div key={idx} className="rounded-xl overflow-hidden">
+                          <img src={img} alt="" className="w-full h-28 object-cover" />
+                        </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Product Info */}
-                  <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold" style={{ color: config.text_color }}>Nome do Produto</h1>
-                    <p className="text-sm mt-2" style={{ color: config.text_color + 'cc' }}>Descrição do produto aparecerá aqui</p>
-                    <div className="text-3xl font-extrabold mt-4" style={{ color: config.primary_color }}>R$ 97,00</div>
+                  {/* Customer Form */}
+                  <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 space-y-3">
+                    <h3 className="font-semibold text-gray-900 mb-3">Dados do Cliente</h3>
+                    <input className="input-field text-sm" placeholder="Nome completo" disabled />
+                    <input className="input-field text-sm" placeholder="Email" disabled />
+                    <input className="input-field text-sm" placeholder="Telefone" disabled />
+                    <input className="input-field text-sm" placeholder="CPF" disabled />
                   </div>
 
-                  {/* Button */}
+                  {/* Buy Button */}
                   <button style={{ backgroundColor: config.button_color, color: config.button_text_color }}
-                    className="w-full py-4 rounded-xl font-bold text-lg shadow-lg mb-4">
-                    Comprar Agora
+                    className="w-full py-4 rounded-xl font-bold text-lg shadow-lg mb-6 transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                    Pagar com Pix
                   </button>
 
                   {/* Reviews */}
@@ -654,14 +672,19 @@ export default function Editor() {
                         <Star className="w-4 h-4 text-yellow-400 fill-current" /> Avaliações ({config.reviews.length})
                       </h3>
                       {config.reviews.slice(0, 3).map((r: any, idx: number) => (
-                        <div key={idx} className="border-b border-gray-50 py-2">
+                        <div key={idx} className="border-b border-gray-50 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{r.name}</span>
-                            <div className="flex">{Array.from({length: 5}).map((_, i) => (
-                              <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                            ))}</div>
+                            <div className="w-8 h-8 bg-gradient-to-br from-go-500 to-primary-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              {r.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium">{r.name}</span>
+                              <div className="flex">{Array.from({length: 5}).map((_, i) => (
+                                <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                              ))}</div>
+                            </div>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{r.comment}</p>
+                          <p className="text-xs text-gray-500 mt-1 ml-10">{r.comment}</p>
                         </div>
                       ))}
                     </div>

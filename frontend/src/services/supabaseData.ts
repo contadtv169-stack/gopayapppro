@@ -1,5 +1,14 @@
 import { supabase } from './supabase';
 
+async function getUserId() {
+  const { data } = await supabase.auth.getUser();
+  if (data?.user) return data.user.id;
+  try {
+    const u = localStorage.getItem('gopay_user');
+    return u ? JSON.parse(u).id : null;
+  } catch { return null; }
+}
+
 export async function getProducts() {
   const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
   if (error) throw error;
@@ -7,18 +16,21 @@ export async function getProducts() {
 }
 
 export async function createProduct(p: { name: string; description?: string; price: number; image_url?: string }) {
-  const { data, error } = await supabase.from('products').insert(p).select().single();
+  const user_id = await getUserId();
+  const { data, error } = await supabase.from('products').insert({ ...p, user_id }).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function updateProduct(id: string, p: any) {
-  const { error } = await supabase.from('products').update(p).eq('id', id);
+  const user_id = await getUserId();
+  const { error } = await supabase.from('products').update(p).eq('id', id).eq('user_id', user_id);
   if (error) throw error;
 }
 
 export async function deleteProduct(id: string) {
-  const { error } = await supabase.from('products').delete().eq('id', id);
+  const user_id = await getUserId();
+  const { error } = await supabase.from('products').delete().eq('id', id).eq('user_id', user_id);
   if (error) throw error;
 }
 
@@ -37,13 +49,15 @@ export async function getPaymentLinks() {
 }
 
 export async function createPaymentLink(p: { title: string; description?: string; amount: number; slug: string }) {
-  const { data, error } = await supabase.from('payment_links').insert(p).select().single();
+  const user_id = await getUserId();
+  const { data, error } = await supabase.from('payment_links').insert({ ...p, user_id }).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function deletePaymentLink(id: string) {
-  const { error } = await supabase.from('payment_links').delete().eq('id', id);
+  const user_id = await getUserId();
+  const { error } = await supabase.from('payment_links').delete().eq('id', id).eq('user_id', user_id);
   if (error) throw error;
 }
 
