@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Save, Key, User, Loader2, Eye, EyeOff, Camera, Check, ArrowUpRight } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Save, Key, User, Loader2, Eye, EyeOff, Camera, Check, ArrowUpRight, Upload, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import NotificationSettings from './NotificationSettings';
@@ -13,15 +13,17 @@ const gatewayInfo = {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', business_logo: '' });
+  const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', business_logo: '', avatar_url: '' });
   const [gateways, setGateways] = useState<Record<string, any>>({});
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const capturedImage = localStorage.getItem('gopay_face');
 
   useEffect(() => {
     const user = localStorage.getItem('gopay_user');
-    if (user) setProfile(prev => ({ ...prev, ...JSON.parse(user) }));
+    if (user) { const u = JSON.parse(user); setProfile(prev => ({ ...prev, ...u })); setAvatarPreview(u.avatar_url || ''); }
     (async () => {
       const { data } = await supabase.from('gateway_credentials').select('*');
       const map: any = {};
@@ -33,11 +35,35 @@ export default function Settings() {
   const saveProfile = async () => {
     setSaving(true);
     const user = JSON.parse(localStorage.getItem('gopay_user') || '{}');
-    Object.assign(user, profile);
+    Object.assign(user, { ...profile, avatar_url: avatarPreview });
     localStorage.setItem('gopay_user', JSON.stringify(user));
-    await supabase.auth.updateUser({ data: profile });
+    await supabase.auth.updateUser({ data: { ...profile, avatar_url: avatarPreview } });
     toast.success('Perfil atualizado!');
     setSaving(false);
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error('Máximo 5MB');
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      setAvatarPreview(url);
+      const user = JSON.parse(localStorage.getItem('gopay_user') || '{}');
+      user.avatar_url = url;
+      localStorage.setItem('gopay_user', JSON.stringify(user));
+      toast.success('Foto de perfil atualizada!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAvatar = () => {
+    setAvatarPreview('');
+    const user = JSON.parse(localStorage.getItem('gopay_user') || '{}');
+    delete user.avatar_url;
+    localStorage.setItem('gopay_user', JSON.stringify(user));
+    toast.success('Foto removida');
   };
 
   const saveGateway = async (gateway: string, creds: Record<string, string>) => {
@@ -54,9 +80,29 @@ export default function Settings() {
       <NotificationSettings />
 
       <div className="card !p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-go-100 rounded-xl flex items-center justify-center"><User className="w-5 h-5 text-go-600" /></div>
-          <div><h2 className="font-semibold text-gray-900">Perfil</h2><p className="text-sm text-gray-500">Suas informações</p></div>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative group">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-go-500 to-primary-600 flex items-center justify-center overflow-hidden">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-8 h-8 text-white" />
+              )}
+            </div>
+            <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 transition-colors">
+              <Camera className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+            {avatarPreview && (
+              <button onClick={removeAvatar} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Trash2 className="w-2.5 h-2.5 text-white" />
+              </button>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900">Perfil</h2>
+            <p className="text-sm text-gray-500">Suas informações</p>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[{ key: 'name', label: 'Nome' }, { key: 'email', label: 'Email', disabled: true }, { key: 'phone', label: 'Telefone' }, { key: 'document', label: 'CPF/CNPJ' }, { key: 'business_name', label: 'Nome da Loja' }].map(f => (

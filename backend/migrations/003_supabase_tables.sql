@@ -148,40 +148,61 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customizations ENABLE ROW LEVEL SECURITY;
 
 -- Products: usuarios so veem seus proprios produtos
+DROP POLICY IF EXISTS "users_select_own_products" ON products;
+DROP POLICY IF EXISTS "users_insert_own_products" ON products;
+DROP POLICY IF EXISTS "users_update_own_products" ON products;
+DROP POLICY IF EXISTS "users_delete_own_products" ON products;
 CREATE POLICY "users_select_own_products" ON products FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_products" ON products FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "users_update_own_products" ON products FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "users_delete_own_products" ON products FOR DELETE USING (auth.uid() = user_id);
 
 -- Orders: usuarios so veem seus proprios pedidos
+DROP POLICY IF EXISTS "users_select_own_orders" ON orders;
+DROP POLICY IF EXISTS "users_insert_own_orders" ON orders;
 CREATE POLICY "users_select_own_orders" ON orders FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_orders" ON orders FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Payment links
+DROP POLICY IF EXISTS "users_select_own_links" ON payment_links;
+DROP POLICY IF EXISTS "users_insert_own_links" ON payment_links;
+DROP POLICY IF EXISTS "users_delete_own_links" ON payment_links;
 CREATE POLICY "users_select_own_links" ON payment_links FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_links" ON payment_links FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "users_delete_own_links" ON payment_links FOR DELETE USING (auth.uid() = user_id);
 
 -- Notifications
+DROP POLICY IF EXISTS "users_select_own_notifications" ON notifications;
+DROP POLICY IF EXISTS "users_update_own_notifications" ON notifications;
 CREATE POLICY "users_select_own_notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_update_own_notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
 
 -- Gateway credentials
+DROP POLICY IF EXISTS "users_select_own_gateways" ON gateway_credentials;
+DROP POLICY IF EXISTS "users_insert_own_gateways" ON gateway_credentials;
 CREATE POLICY "users_select_own_gateways" ON gateway_credentials FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_gateways" ON gateway_credentials FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- WhatsApp config
+DROP POLICY IF EXISTS "users_select_own_whatsapp" ON whatsapp_config;
+DROP POLICY IF EXISTS "users_insert_own_whatsapp" ON whatsapp_config;
+DROP POLICY IF EXISTS "users_update_own_whatsapp" ON whatsapp_config;
 CREATE POLICY "users_select_own_whatsapp" ON whatsapp_config FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_whatsapp" ON whatsapp_config FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "users_update_own_whatsapp" ON whatsapp_config FOR UPDATE USING (auth.uid() = user_id);
 
 -- Customizations
+DROP POLICY IF EXISTS "users_select_own_customizations" ON customizations;
+DROP POLICY IF EXISTS "users_insert_own_customizations" ON customizations;
+DROP POLICY IF EXISTS "users_update_own_customizations" ON customizations;
+DROP POLICY IF EXISTS "users_delete_own_customizations" ON customizations;
 CREATE POLICY "users_select_own_customizations" ON customizations FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_customizations" ON customizations FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "users_update_own_customizations" ON customizations FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "users_delete_own_customizations" ON customizations FOR DELETE USING (auth.uid() = user_id);
 
 -- Transactions
+DROP POLICY IF EXISTS "users_select_own_transactions" ON transactions;
 CREATE POLICY "users_select_own_transactions" ON transactions FOR SELECT USING (auth.uid() = user_id);
 
 -- Indexes

@@ -140,56 +140,55 @@ export default function Editor() {
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">Editor de Checkout</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Editor de Checkout</h1>
           {/* Demo/Real Toggle */}
-          <div className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl self-start ${
             config.mode === 'demo' ? 'bg-yellow-50 border border-yellow-200' : 'bg-go-50 border border-go-200'
           }`}>
-            <span className="text-xs font-medium">{config.mode === 'demo' ? '🧪 Modo Demonstração' : '✅ Modo Produção'}</span>
+            <span className="text-[10px] sm:text-xs font-medium">{config.mode === 'demo' ? '🧪 Demo' : '✅ Produção'}</span>
             <button onClick={() => setConfig({ ...config, mode: config.mode === 'demo' ? 'real' : 'demo' })}
-              className={`w-10 h-5 rounded-full transition-colors ${config.mode === 'real' ? 'bg-go-500' : 'bg-yellow-400'}`}>
-              <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.mode === 'real' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              className={`w-8 h-4 rounded-full transition-colors ${config.mode === 'real' ? 'bg-go-500' : 'bg-yellow-400'}`}>
+              <div className={`w-3 h-3 bg-white rounded-full shadow transition-transform ${config.mode === 'real' ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </button>
-            {config.mode === 'demo' && <span className="text-[10px] text-yellow-700">Dados não serão salvos</span>}
           </div>
           <select value={selectedProduct} onChange={e => setSelectedProduct(e.target.value)}
-            className="input-field !py-1.5 !px-3 text-sm max-w-[250px]">
+            className="input-field !py-1.5 !px-3 text-sm w-full sm:max-w-[200px]">
             <option value="all">Selecione um produto...</option>
             {products.map((p: any) => (
               <option key={p.id} value={p.id}>{p.name} - R$ {Number(p.price).toFixed(2)}</option>
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <div className="flex bg-gray-100 rounded-lg p-1">
-            <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-md ${previewDevice === 'desktop' ? 'bg-white shadow-sm' : ''}`}><Monitor className="w-4 h-4" /></button>
-            <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-md ${previewDevice === 'mobile' ? 'bg-white shadow-sm' : ''}`}><Smartphone className="w-4 h-4" /></button>
+            <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md ${previewDevice === 'desktop' ? 'bg-white shadow-sm' : ''}`}><Monitor className="w-3.5 h-3.5" /></button>
+            <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md ${previewDevice === 'mobile' ? 'bg-white shadow-sm' : ''}`}><Smartphone className="w-3.5 h-3.5" /></button>
           </div>
-          <button onClick={() => setPreview(!preview)} className={`btn-secondary !py-2 !px-4 text-sm flex items-center gap-2 ${preview ? 'bg-go-50 text-go-700 border-go-200' : ''}`}>
-            {preview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {preview ? 'Editar' : 'Prévia'}
+          <button onClick={() => setPreview(!preview)} className={`btn-secondary !py-1.5 !px-3 text-xs sm:text-sm flex items-center gap-1.5 ${preview ? 'bg-go-50 text-go-700 border-go-200' : ''}`}>
+            {preview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />} {preview ? 'Editar' : 'Prévia'}
           </button>
-          <button onClick={save} disabled={saving || selectedProduct === 'all'} className="btn-primary !py-2 !px-4 text-sm flex items-center gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
+          <button onClick={save} disabled={saving || selectedProduct === 'all'} className="btn-primary !py-1.5 !px-3 text-xs sm:text-sm flex items-center gap-1.5">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Salvar
           </button>
         </div>
       </div>
 
-      <div className="flex gap-4 flex-1 min-h-0">
-        {/* Left Sidebar - Tabs */}
-        <div className="w-56 flex-shrink-0 space-y-1 overflow-y-auto">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+        {/* Left Sidebar - Tabs (horizontal scroll on mobile) */}
+        <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-y-auto lg:w-48 xl:w-56 flex-shrink-0 pb-2 lg:pb-0">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                 activeTab === tab.id ? 'bg-go-50 text-go-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'
               }`}>
-              <tab.icon className="w-5 h-5" />
-              {tab.label}
+              <tab.icon className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className="hidden lg:inline">{tab.label}</span>
             </button>
           ))}
-          {/* White Label Toggle */}
-          <div className="border-t border-gray-100 pt-4 mt-4">
+          {/* White Label Toggle - only on desktop */}
+          <div className="hidden lg:block border-t border-gray-100 pt-4 mt-4">
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl">
               <div>
                 <p className="text-sm font-medium text-gray-900">White Label</p>
@@ -204,10 +203,10 @@ export default function Editor() {
         </div>
 
         {/* Main Editor Area */}
-        <div className="flex-1 flex gap-4 min-h-0">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
           {/* Editor Panel */}
-          <div className={`${preview ? 'hidden' : 'flex'} flex-col flex-1 bg-white rounded-2xl border border-gray-100 overflow-hidden`}>
-            <div className="flex-1 overflow-y-auto p-6">
+          <div className={`${preview ? 'hidden lg:flex' : 'flex'} flex-col flex-1 bg-white rounded-2xl border border-gray-100 overflow-hidden min-h-0`}>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {/* Banner Tab */}
               {activeTab === 'banner' && (
                 <div className="space-y-6">
@@ -537,6 +536,19 @@ export default function Editor() {
               {activeTab === 'advanced' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Avançado</h2>
+                  {/* White Label Toggle (mobile) */}
+                  <div className="lg:hidden border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">White Label</p>
+                        <p className="text-xs text-gray-500">Remover marca GoPay</p>
+                      </div>
+                      <button onClick={() => setConfig({ ...config, white_label: !config.white_label })}
+                        className={`w-10 h-6 rounded-full transition-colors ${config.white_label ? 'bg-go-500' : 'bg-gray-300'}`}>
+                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.white_label ? 'translate-x-5' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  </div>
                   <div>
                     <label className="text-sm text-gray-600 mb-1 block">CSS Personalizado</label>
                     <textarea className="input-field font-mono text-sm" rows={6} placeholder="/* Seu CSS aqui */" value={config.custom_css}
@@ -553,7 +565,7 @@ export default function Editor() {
           </div>
 
           {/* Preview Panel */}
-          <div className={`${preview ? 'flex' : 'hidden lg:flex'} flex-col w-full lg:w-[420px] bg-gray-100 rounded-2xl overflow-hidden ${previewDevice === 'mobile' ? 'max-w-[375px] mx-auto' : ''}`}>
+          <div className={`${preview ? 'flex' : 'hidden lg:flex'} flex-col w-full lg:w-[420px] bg-gray-100 rounded-2xl overflow-hidden ${previewDevice === 'mobile' ? 'max-w-[375px] mx-auto' : ''} ${preview ? 'flex-1 lg:flex-none' : ''}`}>
             <div className="bg-white px-4 py-2 border-b border-gray-100 text-center text-xs text-gray-400 flex-shrink-0">
               {preview ? 'Prévia do Checkout' : 'Prévia'} {previewDevice === 'mobile' ? '(Mobile)' : '(Desktop)'}
             </div>
