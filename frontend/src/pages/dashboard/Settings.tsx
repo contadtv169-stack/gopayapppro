@@ -68,7 +68,7 @@ export default function Settings() {
 
   const saveGateway = async (gateway: string, creds: Record<string, string>) => {
     try {
-      await supabase.from('gateway_credentials').upsert({ gateway, encrypted_api_key: creds.apiKey || '', encrypted_secret: creds.secret || creds.clientSecret || '', is_active: true, user_id: (JSON.parse(localStorage.getItem('gopay_user') || '{}')).id });
+      await supabase.from('gateway_credentials').upsert({ gateway, encrypted_api_key: creds.apiKey || '', encrypted_secret: creds.secret || creds.clientSecret || '', is_active: true });
       toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo!`);
     } catch (err: any) { toast.error(err.message); }
   };

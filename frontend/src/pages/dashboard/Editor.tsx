@@ -106,7 +106,7 @@ export default function Editor() {
     if (selectedProduct === 'all') return toast.error('Selecione um produto para personalizar');
     setSaving(true);
     try {
-      await supabase.from('customizations').upsert({ product_id: selectedProduct, ...config, user_id: JSON.parse(localStorage.getItem('gopay_user') || '{}').id });
+      await supabase.from('customizations').upsert({ product_id: selectedProduct, ...config });
       toast.success('Personalização salva!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar');

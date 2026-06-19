@@ -222,3 +222,30 @@ ALTER TABLE gateway_credentials ALTER COLUMN user_id SET DEFAULT auth.uid();
 ALTER TABLE whatsapp_config ALTER COLUMN user_id SET DEFAULT auth.uid();
 ALTER TABLE customizations ALTER COLUMN user_id SET DEFAULT auth.uid();
 ALTER TABLE transactions ALTER COLUMN user_id SET DEFAULT auth.uid();
+
+-- Auto-set user_id via trigger (more reliable than DEFAULT alone)
+CREATE OR REPLACE FUNCTION set_user_id()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.user_id = auth.uid();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_products_user_id ON products;
+DROP TRIGGER IF EXISTS trg_orders_user_id ON orders;
+DROP TRIGGER IF EXISTS trg_payment_links_user_id ON payment_links;
+DROP TRIGGER IF EXISTS trg_notifications_user_id ON notifications;
+DROP TRIGGER IF EXISTS trg_gateway_credentials_user_id ON gateway_credentials;
+DROP TRIGGER IF EXISTS trg_whatsapp_config_user_id ON whatsapp_config;
+DROP TRIGGER IF EXISTS trg_customizations_user_id ON customizations;
+DROP TRIGGER IF EXISTS trg_transactions_user_id ON transactions;
+
+CREATE TRIGGER trg_products_user_id BEFORE INSERT ON products FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_orders_user_id BEFORE INSERT ON orders FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_payment_links_user_id BEFORE INSERT ON payment_links FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_notifications_user_id BEFORE INSERT ON notifications FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_gateway_credentials_user_id BEFORE INSERT ON gateway_credentials FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_whatsapp_config_user_id BEFORE INSERT ON whatsapp_config FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_customizations_user_id BEFORE INSERT ON customizations FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_transactions_user_id BEFORE INSERT ON transactions FOR EACH ROW EXECUTE FUNCTION set_user_id();
