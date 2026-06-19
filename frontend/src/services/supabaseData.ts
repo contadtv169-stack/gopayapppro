@@ -1,12 +1,5 @@
 import { supabase } from './supabase';
 
-function getUserId() {
-  try {
-    const u = localStorage.getItem('gopay_user');
-    return u ? JSON.parse(u).id : null;
-  } catch { return null; }
-}
-
 export async function getProducts() {
   const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
   if (error) throw error;
@@ -14,18 +7,18 @@ export async function getProducts() {
 }
 
 export async function createProduct(p: { name: string; description?: string; price: number; image_url?: string }) {
-  const { data, error } = await supabase.from('products').insert({ ...p, user_id: getUserId() }).select().single();
+  const { data, error } = await supabase.from('products').insert(p).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function updateProduct(id: string, p: any) {
-  const { error } = await supabase.from('products').update(p).eq('id', id).eq('user_id', getUserId());
+  const { error } = await supabase.from('products').update(p).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteProduct(id: string) {
-  const { error } = await supabase.from('products').delete().eq('id', id).eq('user_id', getUserId());
+  const { error } = await supabase.from('products').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -44,18 +37,18 @@ export async function getPaymentLinks() {
 }
 
 export async function createPaymentLink(p: { title: string; description?: string; amount: number; slug: string }) {
-  const { data, error } = await supabase.from('payment_links').insert({ ...p, user_id: getUserId() }).select().single();
+  const { data, error } = await supabase.from('payment_links').insert(p).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function deletePaymentLink(id: string) {
-  const { error } = await supabase.from('payment_links').delete().eq('id', id).eq('user_id', getUserId());
+  const { error } = await supabase.from('payment_links').delete().eq('id', id);
   if (error) throw error;
 }
 
 export async function getNotifications() {
-  const { data, error } = await supabase.from('notifications').select('*').eq('user_id', getUserId()).order('created_at', { ascending: false }).limit(20);
+  const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50);
   if (error) throw error;
   return data || [];
 }
@@ -65,7 +58,7 @@ export async function markNotificationRead(id: string) {
 }
 
 export async function getUnreadCount() {
-  const { count, error } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', getUserId()).eq('is_read', false);
+  const { count, error } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false);
   if (error) return 0;
   return count || 0;
 }

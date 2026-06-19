@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Tabela de produtos
 CREATE TABLE IF NOT EXISTS products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS products (
 -- Tabela de pedidos
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   payment_link_id UUID REFERENCES payment_links(id) ON DELETE SET NULL,
   customer_name VARCHAR(255),
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS orders (
 -- Tabela de links de pagamento
 CREATE TABLE IF NOT EXISTS payment_links (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   description TEXT,
   amount DECIMAL(10,2) NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS payment_links (
 -- Tabela de notificacoes
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   type VARCHAR(50) NOT NULL,
   title VARCHAR(255) NOT NULL,
   message TEXT,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Tabela de gateway credentials
 CREATE TABLE IF NOT EXISTS gateway_credentials (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   gateway VARCHAR(50) NOT NULL,
   encrypted_api_key TEXT NOT NULL,
   encrypted_secret TEXT,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS gateway_credentials (
 -- Tabela de configuracao WhatsApp
 CREATE TABLE IF NOT EXISTS whatsapp_config (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   instance_id VARCHAR(255),
   api_token TEXT,
   enabled BOOLEAN DEFAULT FALSE,
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_config (
 -- Tabela de customizacoes checkout
 CREATE TABLE IF NOT EXISTS customizations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   product_id UUID REFERENCES products(id) ON DELETE CASCADE,
   banner_url TEXT DEFAULT '',
   banner_type VARCHAR(20) DEFAULT 'image',
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS customizations (
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   gateway VARCHAR(50) NOT NULL,
   gateway_transaction_id VARCHAR(255),
   amount DECIMAL(10,2) NOT NULL,
@@ -145,6 +145,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gateway_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE whatsapp_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customizations ENABLE ROW LEVEL SECURITY;
 
 -- Products: usuarios so veem seus proprios produtos
 CREATE POLICY "users_select_own_products" ON products FOR SELECT USING (auth.uid() = user_id);
@@ -173,6 +174,15 @@ CREATE POLICY "users_insert_own_gateways" ON gateway_credentials FOR INSERT WITH
 CREATE POLICY "users_select_own_whatsapp" ON whatsapp_config FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_whatsapp" ON whatsapp_config FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "users_update_own_whatsapp" ON whatsapp_config FOR UPDATE USING (auth.uid() = user_id);
+
+-- Customizations
+CREATE POLICY "users_select_own_customizations" ON customizations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "users_insert_own_customizations" ON customizations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "users_update_own_customizations" ON customizations FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "users_delete_own_customizations" ON customizations FOR DELETE USING (auth.uid() = user_id);
+
+-- Transactions
+CREATE POLICY "users_select_own_transactions" ON transactions FOR SELECT USING (auth.uid() = user_id);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_products_user_id ON products(user_id);
