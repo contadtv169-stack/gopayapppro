@@ -1,6 +1,4 @@
 import axios from 'axios';
-import { authHandler } from './apiAuth';
-import { getStoredUser, logout } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -20,10 +18,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (!error.config || error.config._demo === true) return Promise.reject(error);
+    if (!error.config) return Promise.reject(error);
     if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || !error.response) {
-      const demo = await authHandler(error.config);
-      if (demo) return { data: demo };
+      return Promise.reject(error);
     }
     const original = error.config;
     if (error.response?.status === 401 && !original._retry) {
@@ -37,6 +34,7 @@ api.interceptors.response.use(
           original.headers.Authorization = `Bearer ${data.accessToken}`;
           return api(original);
         } catch {
+          const { logout } = await import('./auth');
           logout();
           window.location.hash = '#/login';
         }

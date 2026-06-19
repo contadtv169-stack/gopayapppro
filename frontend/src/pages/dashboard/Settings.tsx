@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Save, Key, User, Building, Loader2, Check, Eye, EyeOff } from 'lucide-react';
+import { Save, Key, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { supabase } from '../../services/supabase';
 
 const gatewayInfo = {
   abacatepay: { name: 'AbacatePay', fields: [{ key: 'apiKey', label: 'API Key', type: 'password' }, { key: 'secret', label: 'Webhook Secret', type: 'password' }], docs: 'https://api.abacatepay.com' },
@@ -13,83 +13,84 @@ export default function Settings() {
   const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', business_logo: '' });
   const [gateways, setGateways] = useState<Record<string, any>>({});
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.get('/users/me').then(({ data }) => setProfile(data));
-    api.get('/gateways').then(({ data }) => {
+    const user = localStorage.getItem('gopay_user');
+    if (user) setProfile(prev => ({ ...prev, ...JSON.parse(user) }));
+    (async () => {
+      const { data } = await supabase.from('gateway_credentials').select('*');
       const map: any = {};
-      data.forEach((g: any) => { map[g.gateway] = { isActive: g.is_active }; });
+      (data || []).forEach((g: any) => { map[g.gateway] = { isActive: g.is_active }; });
       setGateways(map);
-    });
+    })();
   }, []);
 
   const saveProfile = async () => {
+    setSaving(true);
+    const user = JSON.parse(localStorage.getItem('gopay_user') || '{}');
+    Object.assign(user, profile);
+    localStorage.setItem('gopay_user', JSON.stringify(user));
+    await supabase.auth.updateUser({ data: profile });
+    toast.success('Perfil atualizado!');
+    setSaving(false);
+  };
+
+  const saveGateway = async (gateway: string, creds: Record<string, string>) => {
     try {
-      await api.put('/users/me', profile);
-      toast.success('Perfil atualizado!');
+      await supabase.from('gateway_credentials').upsert({ gateway, encrypted_api_key: creds.apiKey || '', encrypted_secret: creds.secret || creds.clientSecret || '', is_active: true, user_id: (JSON.parse(localStorage.getItem('gopay_user') || '{}')).id });
+      toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo!`);
     } catch (err: any) { toast.error(err.message); }
   };
 
-  const saveGateway = async (gateway: string) => {
-    const creds: any = {};
-    gatewayInfo[gateway as keyof typeof gatewayInfo].fields.forEach(f => {
-      const val = (document.getElementById(`gw-${gateway}-${f.key}`) as HTMLInputElement)?.value;
-      if (val) creds[f.key] = val;
-    });
-    if (Object.keys(creds).length === 0) return toast.error('Preencha pelo menos uma chave');
-    try {
-      await api.post(`/gateways/${gateway}`, creds);
-      toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} configurado!`);
-    } catch (err: any) { toast.error(err.response?.data?.error || 'Erro'); }
-  };
-
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Configurações</h1>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
 
-      <div className="card mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><User className="w-5 h-5" /> Perfil</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div><label className="text-sm text-gray-600">Nome</label><input className="input-field mt-1" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} /></div>
-          <div><label className="text-sm text-gray-600">Email</label><input className="input-field mt-1" value={profile.email} disabled /></div>
-          <div><label className="text-sm text-gray-600">Telefone</label><input className="input-field mt-1" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} /></div>
-          <div><label className="text-sm text-gray-600">CPF/CNPJ</label><input className="input-field mt-1" value={profile.document || ''} onChange={e => setProfile({...profile, document: e.target.value})} /></div>
-          <div className="sm:col-span-2"><label className="text-sm text-gray-600">Nome da Empresa</label><input className="input-field mt-1" value={profile.business_name || ''} onChange={e => setProfile({...profile, business_name: e.target.value})} /></div>
+      <div className="card !p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-go-100 rounded-xl flex items-center justify-center"><User className="w-5 h-5 text-go-600" /></div>
+          <div><h2 className="font-semibold text-gray-900">Perfil</h2><p className="text-sm text-gray-500">Suas informações pessoais</p></div>
         </div>
-        <button onClick={saveProfile} className="btn-primary flex items-center gap-2 mt-4 !py-2 !px-4 text-sm"><Save className="w-4 h-4" /> Salvar Perfil</button>
-      </div>
-
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><Key className="w-5 h-5" /> Integrações de Pagamento</h2>
-        <p className="text-sm text-gray-500 mb-6">Configure suas chaves de API dos gateways de pagamento. As chaves são armazenadas criptografadas.</p>
-        <div className="space-y-6">
-          {Object.entries(gatewayInfo).map(([key, gw]) => (
-            <div key={key} className="border border-gray-100 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">{gw.name}</h3>
-                {gateways[key]?.isActive && <span className="flex items-center gap-1 text-xs text-go-600 bg-go-50 px-2 py-1 rounded-full"><Check className="w-3 h-3" /> Ativo</span>}
-              </div>
-              <div className="space-y-3">
-                {gw.fields.map(f => (
-                  <div key={f.key}>
-                    <label className="text-sm text-gray-600">{f.label}</label>
-                    <div className="relative mt-1">
-                      <input id={`gw-${key}-${f.key}`} type={showKey[`${key}-${f.key}`] ? 'text' : f.type} className="input-field !pr-10" placeholder={f.label} />
-                      <button type="button" onClick={() => setShowKey({...showKey, [`${key}-${f.key}`]: !showKey[`${key}-${f.key}`]})} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                        {showKey[`${key}-${f.key}`] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-3 mt-4">
-                <button onClick={() => saveGateway(key)} className="btn-primary !py-2 !px-4 text-sm flex items-center gap-2"><Save className="w-4 h-4" /> Salvar</button>
-                <a href={gw.docs} target="_blank" className="text-sm text-go-600 hover:text-go-700">Obter chaves ↗</a>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[{ key: 'name', label: 'Nome' }, { key: 'email', label: 'Email', disabled: true }, { key: 'phone', label: 'Telefone' }, { key: 'document', label: 'CPF/CNPJ' }, { key: 'business_name', label: 'Nome da Loja' }].map(f => (
+            <div key={f.key}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+              <input value={(profile as any)[f.key] || ''} onChange={e => setProfile({ ...profile, [f.key]: e.target.value })} className="input-field" disabled={(f as any).disabled} />
             </div>
           ))}
         </div>
+        <button onClick={saveProfile} disabled={saving} className="btn-primary flex items-center gap-2 mt-4">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
+        </button>
       </div>
+
+      {Object.entries(gatewayInfo).map(([key, gw]) => (
+        <div key={key} className="card !p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center"><Key className="w-5 h-5 text-primary-600" /></div>
+            <div><h2 className="font-semibold text-gray-900">{gw.name}</h2>
+              <p className="text-xs text-gray-400"><a href={gw.docs} target="_blank" rel="noopener noreferrer" className="text-go-600 hover:underline">Documentação</a></p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {gw.fields.map((f: any) => (
+              <div key={f.key}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                <div className="relative">
+                  <input type={showKey[`${key}_${f.key}`] ? 'text' : f.type} className="input-field pr-10" placeholder={`${gw.name} ${f.label}`} />
+                  <button onClick={() => setShowKey({ ...showKey, [`${key}_${f.key}`]: !showKey[`${key}_${f.key}`] })} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showKey[`${key}_${f.key}`] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => { const creds: Record<string, string> = {}; gw.fields.forEach((f: any) => creds[f.key] = (document.querySelector(`[placeholder="${gw.name} ${f.label}"]`) as HTMLInputElement)?.value || ''); saveGateway(key, creds); }} className="btn-primary flex items-center gap-2 mt-4">
+            <Save className="w-4 h-4" /> Salvar {gw.name}
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AIChat } from '../../components/AIChat';
-import api from '../../services/api';
+import { getProducts } from '../../services/supabaseData';
+import { supabase } from '../../services/supabase';
 
 type Tab = 'banner' | 'logo' | 'video' | 'quiz' | 'gallery' | 'reviews' | 'colors' | 'advanced';
 
@@ -84,14 +85,18 @@ export default function Editor() {
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
 
   useEffect(() => {
-    api.get('/products').then(({ data }) => setProducts(data || [])).catch(() => {});
+    getProducts().then(setProducts).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (selectedProduct && selectedProduct !== 'all') {
-      api.get(`/customizations/checkout/${selectedProduct}`).then(({ data }) => {
-        if (data && data.id) setConfig(prev => ({ ...prev, ...data }));
-      }).catch(() => {}).finally(() => setLoading(false));
+      (async () => {
+        try {
+          const { data }: any = await supabase.from('customizations').select('*').eq('product_id', selectedProduct).maybeSingle();
+          if (data) setConfig(prev => ({ ...prev, ...data }));
+        } catch {}
+        setLoading(false);
+      })();
     } else {
       setLoading(false);
     }
@@ -101,10 +106,10 @@ export default function Editor() {
     if (selectedProduct === 'all') return toast.error('Selecione um produto para personalizar');
     setSaving(true);
     try {
-      await api.put(`/customizations/checkout/${selectedProduct}`, config);
+      await supabase.from('customizations').upsert({ product_id: selectedProduct, ...config, user_id: JSON.parse(localStorage.getItem('gopay_user') || '{}').id });
       toast.success('Personalização salva!');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Erro ao salvar');
+      toast.error(err.message || 'Erro ao salvar');
     } finally { setSaving(false); }
   };
 

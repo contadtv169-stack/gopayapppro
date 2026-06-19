@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Plus, Copy, Trash2, Loader2, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { getPaymentLinks, createPaymentLink, deletePaymentLink } from '../../services/supabaseData';
+
+const BASE_URL = 'https://contadtv169-stack.github.io/gopayapppro';
 
 export default function PaymentLinks() {
   const [links, setLinks] = useState<any[]>([]);
@@ -10,28 +12,34 @@ export default function PaymentLinks() {
   const [form, setForm] = useState({ title: '', description: '', amount: '', slug: '' });
 
   const load = async () => {
-    try { setLinks((await api.get('/payment-links')).data); } catch {} finally { setLoading(false); }
+    try { setLinks(await getPaymentLinks()); } catch {} finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
 
   const create = async () => {
     if (!form.title || !form.amount) return toast.error('Título e valor são obrigatórios');
     try {
-      await api.post('/payment-links', { ...form, amount: Number(form.amount) });
+      await createPaymentLink({
+        title: form.title,
+        description: form.description,
+        amount: Number(form.amount),
+        slug: form.slug || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      });
       toast.success('Link criado!');
       setShowModal(false);
       setForm({ title: '', description: '', amount: '', slug: '' });
       load();
-    } catch (err: any) { toast.error(err.response?.data?.error || 'Erro'); }
+    } catch (err: any) { toast.error(err.message || 'Erro'); }
   };
 
   const remove = async (id: string) => {
     if (!confirm('Excluir link?')) return;
-    try { await api.delete(`/payment-links/${id}`); toast.success('Excluído'); load(); } catch {}
+    try { await deletePaymentLink(id); toast.success('Excluído'); load(); } catch {}
   };
 
   const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/checkout/link/${slug}`);
+    const url = `${BASE_URL}/#/checkout/link/${slug}`;
+    navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };
 
@@ -44,35 +52,41 @@ export default function PaymentLinks() {
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2 !py-2 !px-4 text-sm"><Plus className="w-4 h-4" /> Novo Link</button>
       </div>
 
-      {links.length === 0 && <div className="card text-center py-12"><p className="text-gray-400 mb-4">Nenhum link de pagamento</p><button onClick={() => setShowModal(true)} className="btn-primary">Criar Link</button></div>}
+      {links.length === 0 && <div className="card text-center py-12"><p className="text-gray-400 mb-4">Nenhum link de pagamento</p><button onClick={() => setShowModal(true)} className="btn-primary">Criar Primeiro Link</button></div>}
 
-      <div className="grid gap-4">
-        {links.map((l) => (
-          <div key={l.id} className="card flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900">{l.title}</h3>
-              <p className="text-sm text-gray-500 truncate">{l.description || l.products?.name || ''}</p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {links.map((link) => (
+          <div key={link.id} className="card">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h3 className="font-semibold text-gray-900">{link.title}</h3>
+                {link.description && <p className="text-xs text-gray-500 mt-0.5">{link.description}</p>}
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${link.is_active ? 'bg-go-50 text-go-700' : 'bg-gray-50 text-gray-500'}`}>
+                {link.is_active ? 'Ativo' : 'Inativo'}
+              </span>
             </div>
-            <div className="text-right">
-              <p className="font-bold text-gray-900">R$ {Number(l.amount).toFixed(2)}</p>
-              <p className="text-xs text-gray-400">{l.current_payments || 0} pagamentos</p>
+            <p className="text-lg font-bold text-go-600 mb-3">{link.amount > 0 ? `R$ ${Number(link.amount).toFixed(2)}` : 'Valor livre'}</p>
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <span className="text-xs text-gray-400">{link.sales_count || 0} vendas</span>
+              <div className="flex gap-1">
+                <button onClick={() => copyLink(link.slug)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Copiar link"><Copy className="w-4 h-4 text-gray-500" /></button>
+                <a href={`${BASE_URL}/#/checkout/link/${link.slug}`} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-gray-100 rounded-lg"><ExternalLink className="w-4 h-4 text-gray-500" /></a>
+                <button onClick={() => remove(link.id)} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4 text-red-400" /></button>
+              </div>
             </div>
-            <button onClick={() => copyLink(l.slug)} className="text-gray-400 hover:text-go-500"><Copy className="w-5 h-5" /></button>
-            <a href={`/checkout/link/${l.slug}`} target="_blank" className="text-gray-400 hover:text-go-500"><ExternalLink className="w-5 h-5" /></a>
-            <button onClick={() => remove(l.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
           </div>
         ))}
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Novo Link de Pagamento</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Novo Link de Pagamento</h2>
             <div className="space-y-3">
-              <input className="input-field" placeholder="Título *" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
-              <textarea className="input-field" placeholder="Descrição" rows={2} value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
-              <input className="input-field" placeholder="Valor (R$) *" type="number" step="0.01" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
-              <input className="input-field" placeholder="Slug (URL personalizada)" value={form.slug} onChange={e => setForm({...form, slug: e.target.value})} />
+              <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" placeholder="Título" />
+              <input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} className="input-field" placeholder="URL personalizada (slug)" />
+              <input value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="input-field" type="number" step="0.01" placeholder="Valor (R$) - 0 para valor livre" />
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowModal(false)} className="btn-secondary flex-1">Cancelar</button>
