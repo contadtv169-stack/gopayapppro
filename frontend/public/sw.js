@@ -1,10 +1,9 @@
 const CACHE_NAME = 'gopay-v1';
 const urlsToCache = [
   './',
-  './login',
-  './register',
-  './dashboard',
+  './index.html',
   './manifest.json',
+  './404.html',
 ];
 
 self.addEventListener('install', (event) => {

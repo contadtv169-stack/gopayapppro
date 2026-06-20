@@ -70,7 +70,15 @@ export default function Settings() {
 
   const saveGateway = async (gateway: string, creds: Record<string, string>) => {
     try {
-      const uid = JSON.parse(localStorage.getItem('gopay_user') || '{}').id;
+      let uid = JSON.parse(localStorage.getItem('gopay_user') || '{}').id;
+      if (!uid) {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.user?.id) {
+          uid = data.session.user.id;
+          const user = { id: uid, email: data.session.user.email, name: data.session.user.user_metadata?.name || '' };
+          localStorage.setItem('gopay_user', JSON.stringify(user));
+        }
+      }
       if (!uid) { toast.error('Faça login novamente'); return; }
       const apiKey = creds.clientId || creds.apiKey || '';
       const secret = creds.clientSecret || creds.secret || '';

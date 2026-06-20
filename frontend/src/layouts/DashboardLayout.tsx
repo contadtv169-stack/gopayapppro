@@ -101,7 +101,7 @@ export default function DashboardLayout({ children, user }: { children: React.Re
           ))}
         </nav>
         <div className="absolute bottom-4 left-4 right-4 space-y-2">
-          <button onClick={async () => { try { const promptEvent: any = (window as any).deferredPrompt; if (promptEvent) { promptEvent.prompt(); const result = await promptEvent.userChoice; if (result.outcome === 'accepted') toast.success('App instalado!'); (window as any).deferredPrompt = null; } else { toast('Abra o menu do navegador > Instalar aplicativo'); } } catch { toast('Abra o menu do navegador > Instalar aplicativo'); } }}
+          <button onClick={() => toast('Para instalar, use o menu do navegador > Compartilhar > Adicionar à tela inicial')}
             className="w-full flex items-center gap-2 px-4 py-3 bg-go-50 text-go-700 rounded-xl text-sm font-medium hover:bg-go-100 transition-colors">
             <Download className="w-4 h-4" /> Baixar App
           </button>
