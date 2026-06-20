@@ -82,13 +82,16 @@ export default function Settings() {
       if (!uid) { toast.error('Faça login novamente'); return; }
       const apiKey = creds.clientId || creds.apiKey || '';
       const secret = creds.clientSecret || creds.secret || '';
-      const { error } = await supabase.rpc('upsert_gateway_credential', {
-        p_user_id: uid,
-        p_gateway: gateway,
-        p_encrypted_api_key: apiKey,
-        p_encrypted_secret: secret,
-      });
-      if (error) throw error;
+      // Insert or update
+      const { error } = await supabase.from('gateway_credentials').upsert({
+        user_id: uid, gateway, encrypted_api_key: apiKey, encrypted_secret: secret, is_active: true,
+      }, { onConflict: 'user_id,gateway', ignoreDuplicates: false });
+      if (error) {
+        if (error.code === '40342' || error.message?.includes('violates row-level security')) {
+          throw new Error('Permissão negada. Execute a SQL migration no Supabase (003_supabase_tables.sql)');
+        }
+        throw error;
+      }
       toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo!`);
     } catch (err: any) { toast.error(err.message || 'Erro ao salvar'); }
   };
