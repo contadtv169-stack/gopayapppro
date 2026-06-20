@@ -42,6 +42,62 @@ function buildPixBRCode(amount: number, txid: string, pixKey: string, merchantNa
   return payload + crc16(payload);
 }
 
+const GATEWAY_ENDPOINTS: Record<string, string> = {
+  kryptgateway: 'https://kryptgateway-api.onrender.com/api/v1',
+  pixgo: 'https://api.pixgo.com.br/v1',
+  abacatepay: 'https://api.abacatepay.com/v1',
+};
+
+async function processWithGateway(gateway: string, creds: any, params: {
+  amount: number;
+  customer_name: string;
+  customer_email?: string;
+  customer_phone?: string;
+  customer_document?: string;
+  orderId: string;
+}) {
+  const gwName = gateway as string;
+  const baseUrl = GATEWAY_ENDPOINTS[gwName];
+  if (!baseUrl) return null;
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  if (gwName === 'kryptgateway') {
+    headers['Authorization'] = `Basic ${btoa(`${creds.encrypted_api_key}:${creds.encrypted_secret}`)}`;
+  } else {
+    headers['Authorization'] = `Bearer ${creds.encrypted_api_key}`;
+  }
+
+  const body: any = {
+    amount: params.amount,
+    customer: { name: params.customer_name, email: params.customer_email, phone: params.customer_phone, document: params.customer_document },
+    reference: params.orderId,
+    payment_method: 'pix',
+  };
+
+  const res = await fetch(`${baseUrl}/charges`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!res.ok) throw new Error(`Gateway ${gwName} retornou erro ${res.status}`);
+
+  const data = await res.json();
+  const pixCode = data.pix?.code || data.pixCode || data.brCode || data.qr_code || '';
+  const qrUrl = data.pix?.qrcode || data.qrCodeUrl || data.qr_code_url || '';
+
+  return { pixCode, qrUrl };
+}
+
+async function createPixLocally(amount: number, orderId: string) {
+  const pixKey = getSellerPixKey();
+  const pixBrCode = buildPixBRCode(amount, orderId, pixKey, 'GoPay', 'BRASILIA');
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixBrCode)}`;
+  return { pixCode: pixBrCode, qrUrl };
+}
+
 export async function getCheckoutProduct(slug: string) {
   const { data: product, error } = await supabase.from('products').select('*').eq('id', slug).maybeSingle();
   if (!product) {
@@ -74,18 +130,34 @@ export async function createCheckoutOrder(params: {
   amount: number;
 }) {
   const orderId = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Date.now().toString(36));
-  const pixKey = getSellerPixKey();
-  const pixBrCode = buildPixBRCode(params.amount, orderId, pixKey, 'GoPay', 'BRASILIA');
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixBrCode)}`;
 
-  // Check for active gateway credentials
+  // Try gateway first, fall back to local Pix
+  let pixCode = '';
+  let qrUrl = '';
   let gateway = 'gopay';
+  let gatewayError = '';
+
   try {
     const { data: gwCreds } = await supabase.from('gateway_credentials').select('*').eq('user_id', params.seller_id).eq('is_active', true).maybeSingle();
     if (gwCreds) {
       gateway = gwCreds.gateway;
+      const result = await processWithGateway(gateway, gwCreds, { ...params, orderId });
+      if (result) {
+        pixCode = result.pixCode;
+        qrUrl = result.qrUrl;
+      }
     }
-  } catch {}
+  } catch (err: any) {
+    gatewayError = err.message || 'Gateway indisponível';
+    gateway = 'gopay';
+  }
+
+  // Fallback to local Pix if gateway failed or no gateway
+  if (!pixCode) {
+    const local = await createPixLocally(params.amount, orderId);
+    pixCode = local.pixCode;
+    qrUrl = local.qrUrl;
+  }
 
   const order = {
     id: orderId,
@@ -101,14 +173,15 @@ export async function createCheckoutOrder(params: {
     status: 'pending',
     payment_method: 'pix',
     gateway,
-    pix_code: pixBrCode,
+    pix_code: pixCode,
     pix_qr: qrUrl,
+    gateway_error: gatewayError || null,
     expires_at: new Date(Date.now() + 1200 * 1000).toISOString(),
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('orders').insert(order);
   if (error) throw error;
-  return { ...order, copyPaste: pixBrCode, qrCodeBase64: qrUrl };
+  return { ...order, copyPaste: pixCode, qrCodeBase64: qrUrl };
 }
 
 export async function getOrderStatus(orderId: string) {
