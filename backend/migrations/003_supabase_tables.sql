@@ -284,3 +284,18 @@ ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS julia_prompt TEXT DEFAULT '
 ALTER TABLE whatsapp_config ADD COLUMN IF NOT EXISTS notify_sales BOOLEAN DEFAULT TRUE;
 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS gateway_error TEXT DEFAULT NULL;
+
+-- Stored procedure to upsert gateway credentials bypassing RLS
+CREATE OR REPLACE FUNCTION upsert_gateway_credential(
+  p_user_id UUID,
+  p_gateway VARCHAR,
+  p_encrypted_api_key TEXT,
+  p_encrypted_secret TEXT
+) RETURNS void AS $$
+BEGIN
+  INSERT INTO gateway_credentials (user_id, gateway, encrypted_api_key, encrypted_secret, is_active)
+  VALUES (p_user_id, p_gateway, p_encrypted_api_key, p_encrypted_secret, true)
+  ON CONFLICT (user_id, gateway) 
+  DO UPDATE SET encrypted_api_key = p_encrypted_api_key, encrypted_secret = p_encrypted_secret, is_active = true, updated_at = NOW();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
