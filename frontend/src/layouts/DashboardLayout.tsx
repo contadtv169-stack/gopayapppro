@@ -25,9 +25,9 @@ const navItems = [
 const mobileNav = [
   { path: '/dashboard', icon: Home, label: 'Início' },
   { path: '/dashboard/products', icon: Package, label: 'Produtos' },
+  { path: '/dashboard/editor', icon: PenSquare, label: 'Editor' },
   { path: '/dashboard/orders', icon: ShoppingCart, label: 'Pedidos' },
-  { path: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
-  { path: '/dashboard/camfacial', icon: Camera, label: 'CamFacial' },
+  { path: '/dashboard/links', icon: LinkIcon, label: 'Links' },
   { path: '/dashboard/placas', icon: Trophy, label: 'Placas' },
   { path: '/dashboard/settings', icon: Settings, label: 'Ajustes' },
 ];

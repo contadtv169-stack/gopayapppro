@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCheckoutLink, createCheckoutOrder, getOrderStatus } from '../services/checkoutService';
 
@@ -47,6 +47,7 @@ export default function PaymentLinkPage() {
     e.preventDefault();
     if (!customer.name) return toast.error('Nome é obrigatório');
     setProcessing(true);
+    setError('');
     try {
       const order = await createCheckoutOrder({
         payment_link_id: link.id,
@@ -71,51 +72,98 @@ export default function PaymentLinkPage() {
   };
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const installment = (v: number) => v / 12;
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-go-500" /></div>;
   if (error && !link) return <div className="min-h-screen flex items-center justify-center flex-col"><AlertCircle className="w-16 h-16 text-red-400 mb-4" /><p>{error}</p></div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 py-8">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-br from-go-500 to-primary-600 text-white px-4 py-2 rounded-xl text-lg font-bold"><DollarSign className="w-6 h-6" /> GoPay</div>
-        </div>
+      <div className="max-w-2xl mx-auto px-4 py-8">
         {link && !payment && (
-          <div className="card">
-            <h1 className="text-2xl font-bold mb-2">{link.title}</h1>
-            {link.description && <p className="text-gray-600 mb-4">{link.description}</p>}
-            <div className="text-3xl font-extrabold mb-6">R$ {Number(link.amount).toFixed(2)}</div>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input className="input-field" placeholder="Nome completo *" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} required />
-              <input className="input-field" placeholder="Email" type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} />
-              <input className="input-field" placeholder="Telefone" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
-              <input className="input-field" placeholder="CPF" value={customer.document} onChange={e => setCustomer({...customer, document: e.target.value})} />
-              <button type="submit" disabled={processing} className="btn-primary w-full flex items-center justify-center gap-2 text-lg !py-4">
-                {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Pagar com Pix'}
-              </button>
-            </form>
-          </div>
+          <>
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-br from-go-500 to-primary-600 text-white px-4 py-2 rounded-xl text-lg font-bold"><DollarSign className="w-6 h-6" /> GoPay</div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+              <div className="p-5">
+                <h1 className="text-xl font-bold mb-2">{link.title}</h1>
+                {link.description && <p className="text-sm text-gray-500 mb-4">{link.description}</p>}
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-xs text-gray-400">12x de</span>
+                  <span className="text-lg font-bold text-gray-400">R$ {installment(Number(link.amount)).toFixed(2)}</span>
+                </div>
+                <div className="text-3xl font-extrabold mb-2" style={{ color: '#10b981' }}>R$ {Number(link.amount).toFixed(2)} à vista</div>
+                <div className="flex items-center gap-2 text-sm text-gray-400 mt-1">
+                  <Check className="w-3.5 h-3.5 text-go-500" /> Pagamento 100% seguro
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+              <h3 className="font-semibold flex items-center gap-2 mb-4">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Dados pessoais
+              </h3>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <input className="input-field" placeholder="Nome completo *" value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} required />
+                <input className="input-field" placeholder="Email" type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} />
+                <input className="input-field" placeholder="Telefone" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
+                <input className="input-field" placeholder="CPF" value={customer.document} onChange={e => setCustomer({...customer, document: e.target.value})} />
+
+                <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mt-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <DollarSign className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Pix</p>
+                      <p className="text-xs text-gray-500">Pagamento instantâneo</p>
+                    </div>
+                    <div className="ml-auto w-5 h-5 rounded-full border-2 border-green-500 flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+                <button type="submit" disabled={processing} className="w-full flex items-center justify-center gap-2 text-lg !py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ backgroundColor: '#10b981', color: '#ffffff' }}>
+                  {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Comprar agora'}
+                </button>
+              </form>
+            </div>
+
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-400 mb-6">
+              <div className="flex items-center gap-1.5"><Check className="w-3 h-3 text-go-500" /> Pagamento seguro</div>
+              <div className="flex items-center gap-1.5"><Check className="w-3 h-3 text-go-500" /> Dados protegidos</div>
+            </div>
+          </>
         )}
+
         {payment && (
-          <div className="card text-center">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {orderStatus === 'paid' ? (
-              <div className="py-8">
+              <div className="py-10 px-6 text-center">
                 <div className="w-20 h-20 bg-go-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-10 h-10 text-go-600" /></div>
                 <h2 className="text-2xl font-bold mb-2">Pagamento Confirmado!</h2>
               </div>
             ) : timeLeft <= 0 ? (
-              <div className="py-8">
+              <div className="py-10 px-6 text-center">
                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-10 h-10 text-red-500" /></div>
                 <h2 className="text-2xl font-bold mb-2">Tempo Expirado</h2>
+                <button onClick={() => { setPayment(null); setOrderStatus(''); }} className="btn-primary mt-4">Tentar novamente</button>
               </div>
             ) : (
-              <>
-                <div className="flex items-center justify-center gap-2 text-orange-500 font-medium mb-4"><Clock className="w-5 h-5" /><span>Expira em {fmt(timeLeft)}</span></div>
+              <div className="p-6">
+                <div className="flex items-center justify-center gap-2 text-orange-500 font-medium mb-6"><Clock className="w-5 h-5" /><span>Expira em {fmt(timeLeft)}</span></div>
+                <h3 className="text-lg font-bold text-center mb-4">Pague com Pix</h3>
+                <p className="text-sm text-gray-500 text-center mb-6">Escaneie o QR Code abaixo com seu banco</p>
                 {payment.qrCodeBase64 ? (
-                  <img src={payment.qrCodeBase64} alt="QR Code Pix" className="w-48 h-48 mx-auto mb-4 rounded-2xl shadow-sm" />
+                  <img src={payment.qrCodeBase64} alt="QR Code Pix" className="w-52 h-52 mx-auto mb-6 rounded-2xl shadow-sm border p-2" />
                 ) : (
-                  <div className="w-48 h-48 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                  <div className="w-52 h-52 mx-auto mb-6 bg-gray-100 rounded-2xl flex items-center justify-center border">
                     <DollarSign className="w-16 h-16 text-gray-300" />
                   </div>
                 )}
@@ -123,19 +171,32 @@ export default function PaymentLinkPage() {
                   <div className="bg-gray-50 rounded-xl p-4 mb-6">
                     <p className="text-xs text-gray-500 mb-2">Código Pix Copia e Cola</p>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs bg-white p-2 rounded-lg border truncate">{payment.copyPaste}</code>
+                      <code className="flex-1 text-xs bg-white p-2 rounded-lg border truncate font-mono">{payment.copyPaste}</code>
                       <button onClick={copyPix} className="bg-go-500 text-white p-2 rounded-lg hover:bg-go-600 flex-shrink-0">
                         {copied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
                 )}
-                <div className="text-sm text-gray-500">Valor: <strong>R$ {Number(payment.amount).toFixed(2)}</strong></div>
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mt-2"><Loader2 className="w-4 h-4 animate-spin" /> Aguardando...</div>
-              </>
+                <div className="text-center border-t border-gray-100 pt-4">
+                  <p className="text-sm text-gray-500">Valor: <strong className="text-gray-900">R$ {Number(payment.amount).toFixed(2)}</strong></p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mt-2"><Loader2 className="w-4 h-4 animate-spin" /> Aguardando pagamento...</div>
+                </div>
+              </div>
             )}
           </div>
         )}
+
+        <div className="text-center pt-4 pb-8">
+          <div className="inline-flex items-center gap-2 text-xs text-gray-400 mb-4">
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+            GoPay - Pagamento processado com segurança
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+          </div>
+          <Link to="/" className="text-gray-400 text-sm hover:text-gray-600 flex items-center justify-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> Voltar
+          </Link>
+        </div>
       </div>
     </div>
   );

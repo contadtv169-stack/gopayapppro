@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Palette, Image, Type, Video, Layout, Star, HelpCircle, 
-  Eye, EyeOff, Save, Upload, Plus, Trash2, GripVertical,
+  Eye, EyeOff, Save, Upload, Plus, Trash2,
   ChevronDown, ChevronUp, Monitor, Smartphone, 
-  X, Check, Move, Play, Link, Loader2, DollarSign, Package
+  X, Check, Play, Link, Loader2, DollarSign, Package,
+  Sun, Contrast, Crop, RotateCw, Undo2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AIChat } from '../../components/AIChat';
@@ -50,7 +51,6 @@ export default function Editor() {
   const [loading, setLoading] = useState(true);
 
   const [config, setConfig] = useState({
-    mode: 'real',
     white_label: false,
     hide_gopay_branding: false,
     logo_url: '',
@@ -84,6 +84,31 @@ export default function Editor() {
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
 
+  // Photo editor state
+  const [photoEditor, setPhotoEditor] = useState<{ open: boolean; url: string; idx?: number }>({ open: false, url: '' });
+  const [photoBrightness, setPhotoBrightness] = useState(100);
+  const [photoContrast, setPhotoContrast] = useState(100);
+  const [photoGrayscale, setPhotoGrayscale] = useState(0);
+  const [photoSepia, setPhotoSepia] = useState(0);
+  const photoCanvasRef = useRef<HTMLCanvasElement>(null);
+  const photoSourceRef = useRef<HTMLImageElement | null>(null);
+
+  const renderPhotoFilters = useCallback(() => {
+    const canvas = photoCanvasRef.current;
+    const img = photoSourceRef.current;
+    if (!canvas || !img) return;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.filter = `brightness(${photoBrightness}%) contrast(${photoContrast}%) grayscale(${photoGrayscale}%) sepia(${photoSepia}%)`;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  }, [photoBrightness, photoContrast, photoGrayscale, photoSepia]);
+
+  useEffect(() => {
+    renderPhotoFilters();
+  }, [renderPhotoFilters]);
+
   useEffect(() => {
     getProducts().then(setProducts).catch(() => {});
   }, []);
@@ -106,16 +131,19 @@ export default function Editor() {
     if (selectedProduct === 'all') return toast.error('Selecione um produto para personalizar');
     setSaving(true);
     try {
-      await supabase.from('customizations').upsert({ product_id: selectedProduct, ...config, user_id: JSON.parse(localStorage.getItem('gopay_user') || '{}').id });
-      toast.success('Personalização salva!');
+      const uid = JSON.parse(localStorage.getItem('gopay_user') || '{}').id;
+      await supabase.from('customizations').upsert({ product_id: selectedProduct, user_id: uid, ...config });
+      await supabase.from('products').update({ is_active: true, checkout_url: `${window.location.origin}/gopayapppro/#/checkout/product/${selectedProduct}` }).eq('id', selectedProduct);
+      toast.success('Checkout salvo e produto publicado!');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar');
     } finally { setSaving(false); }
   };
 
-  const addGalleryImage = () => {
-    if (newGalleryUrl) {
-      setConfig({ ...config, gallery_images: [...config.gallery_images, newGalleryUrl] });
+  const addGalleryImage = (url?: string) => {
+    const img = url || newGalleryUrl;
+    if (img) {
+      setConfig({ ...config, gallery_images: [...config.gallery_images, img] });
       setNewGalleryUrl('');
     }
   };
@@ -135,6 +163,44 @@ export default function Editor() {
     setConfig({ ...config, reviews: config.reviews.filter((_, i) => i !== idx) });
   };
 
+  const openPhotoEditor = (url: string, idx?: number) => {
+    setPhotoEditor({ open: true, url, idx });
+    setPhotoBrightness(100);
+    setPhotoContrast(100);
+    setPhotoGrayscale(0);
+    setPhotoSepia(0);
+  };
+
+  const applyPhotoEdit = () => {
+    const canvas = photoCanvasRef.current;
+    if (!canvas) return;
+    const edited = canvas.toDataURL('image/jpeg', 0.9);
+    if (photoEditor.idx !== undefined) {
+      const imgs = [...config.gallery_images];
+      imgs[photoEditor.idx] = edited;
+      setConfig({ ...config, gallery_images: imgs });
+    } else {
+      addGalleryImage(edited);
+    }
+    setPhotoEditor({ open: false, url: '' });
+    toast.success('Imagem editada!');
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, tab: 'gallery' | 'banner') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      if (tab === 'banner') {
+        setConfig({ ...config, banner_url: url, banner_type: 'image' });
+      } else {
+        addGalleryImage(url);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-go-500" /></div>;
 
   return (
@@ -143,16 +209,7 @@ export default function Editor() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Editor de Checkout</h1>
-          {/* Demo/Real Toggle */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl self-start ${
-            config.mode === 'demo' ? 'bg-yellow-50 border border-yellow-200' : 'bg-go-50 border border-go-200'
-          }`}>
-            <span className="text-[10px] sm:text-xs font-medium">{config.mode === 'demo' ? '🧪 Demo' : '✅ Produção'}</span>
-            <button onClick={() => setConfig({ ...config, mode: config.mode === 'demo' ? 'real' : 'demo' })}
-              className={`w-8 h-4 rounded-full transition-colors ${config.mode === 'real' ? 'bg-go-500' : 'bg-yellow-400'}`}>
-              <div className={`w-3 h-3 bg-white rounded-full shadow transition-transform ${config.mode === 'real' ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
+          <span className="bg-go-50 text-go-700 text-xs px-3 py-1 rounded-full font-medium self-start">Produção</span>
           <select value={selectedProduct} onChange={e => setSelectedProduct(e.target.value)}
             className="input-field !py-1.5 !px-3 text-sm w-full sm:max-w-[200px]">
             <option value="all">Selecione um produto...</option>
@@ -170,13 +227,13 @@ export default function Editor() {
             {preview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />} {preview ? 'Editar' : 'Prévia'}
           </button>
           <button onClick={save} disabled={saving || selectedProduct === 'all'} className="btn-primary !py-1.5 !px-3 text-xs sm:text-sm flex items-center gap-1.5">
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Salvar
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Publicar
           </button>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-        {/* Left Sidebar - Tabs (horizontal scroll on mobile) */}
+        {/* Left sidebar - tabs */}
         <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-y-auto lg:w-48 xl:w-56 flex-shrink-0 pb-2 lg:pb-0">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -187,7 +244,6 @@ export default function Editor() {
               <span className="hidden lg:inline">{tab.label}</span>
             </button>
           ))}
-          {/* White Label Toggle - only on desktop */}
           <div className="hidden lg:block border-t border-gray-100 pt-4 mt-4">
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl">
               <div>
@@ -202,15 +258,16 @@ export default function Editor() {
           </div>
         </div>
 
-        {/* Main Editor Area */}
+        {/* Main area */}
         <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-          {/* Editor Panel */}
+          {/* Editor panel */}
           <div className={`${preview ? 'hidden lg:flex' : 'flex'} flex-col flex-1 bg-white rounded-2xl border border-gray-100 overflow-hidden min-h-0`}>
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              {/* Banner Tab */}
+              {/* Banner tab */}
               {activeTab === 'banner' && (
                 <div className="space-y-6">
-                  <h2 className="text-lg font-semibold">Banner</h2>
+                  <h2 className="text-lg font-semibold">Banner Principal</h2>
+                  <p className="text-sm text-gray-500">O banner aparece no topo da página de checkout ocupando toda a largura</p>
                   <div className="grid grid-cols-3 gap-2">
                     {['image', 'color', 'gradient'].map(type => (
                       <button key={type} onClick={() => setConfig({ ...config, banner_type: type })}
@@ -223,186 +280,118 @@ export default function Editor() {
                   </div>
                   {config.banner_type === 'image' && (
                     <div>
-                      <label className="text-sm text-gray-600 mb-1 block">URL da Imagem do Banner</label>
+                      <label className="text-sm text-gray-600 mb-1 block">URL da Imagem</label>
                       <div className="flex gap-2">
                         <input className="input-field flex-1" placeholder="https://..." value={config.banner_url} onChange={e => setConfig({ ...config, banner_url: e.target.value })} />
-                        <button className="btn-secondary !py-2 !px-3"><Upload className="w-4 h-4" /></button>
+                        <label className="btn-secondary !py-2 !px-3 cursor-pointer flex items-center"><Upload className="w-4 h-4" /><input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'banner')} className="hidden" /></label>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">Ou escolha da galeria:</p>
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-2">
-                        {galleryTemplates.map(img => (
-                          <button key={img.id} onClick={() => setConfig({ ...config, banner_url: img.url })}
-                            className={`relative rounded-lg overflow-hidden border-2 ${config.banner_url === img.url ? 'border-go-500' : 'border-transparent'} hover:border-go-300 transition-all`}>
-                            <img src={img.url} alt={img.label} className="w-full h-16 object-cover" />
-                            <p className="text-[10px] text-center text-gray-500 truncate">{img.label}</p>
-                          </button>
-                        ))}
-                      </div>
+                      {config.banner_url && (
+                        <div className="mt-3 relative rounded-xl overflow-hidden border">
+                          <img src={config.banner_url} alt="Banner" className="w-full h-40 object-cover" />
+                          <button onClick={() => openPhotoEditor(config.banner_url)} className="absolute top-2 right-2 bg-white/90 p-2 rounded-lg shadow hover:bg-white"><Crop className="w-4 h-4" /></button>
+                        </div>
+                      )}
                     </div>
                   )}
                   {config.banner_type === 'color' && (
                     <div>
                       <label className="text-sm text-gray-600 mb-1 block">Cor de Fundo</label>
                       <div className="flex items-center gap-3">
-                        <input type="color" value={config.banner_color} onChange={e => setConfig({ ...config, banner_color: e.target.value })}
-                          className="w-12 h-12 rounded-xl cursor-pointer border" />
+                        <input type="color" value={config.banner_color} onChange={e => setConfig({ ...config, banner_color: e.target.value })} className="w-12 h-12 rounded-xl cursor-pointer border" />
                         <span className="text-sm text-gray-500">{config.banner_color}</span>
                       </div>
                     </div>
                   )}
                   {config.banner_type === 'gradient' && (
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1 block">Cor Inicial</label>
-                        <div className="flex items-center gap-3">
-                          <input type="color" value={config.banner_gradient_start} onChange={e => setConfig({ ...config, banner_gradient_start: e.target.value })}
-                            className="w-12 h-12 rounded-xl cursor-pointer border" />
-                          <span className="text-sm text-gray-500">{config.banner_gradient_start}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1 block">Cor Final</label>
-                        <div className="flex items-center gap-3">
-                          <input type="color" value={config.banner_gradient_end} onChange={e => setConfig({ ...config, banner_gradient_end: e.target.value })}
-                            className="w-12 h-12 rounded-xl cursor-pointer border" />
-                          <span className="text-sm text-gray-500">{config.banner_gradient_end}</span>
-                        </div>
-                      </div>
+                      <div><label className="text-sm text-gray-600 mb-1 block">Cor Inicial</label><div className="flex items-center gap-3"><input type="color" value={config.banner_gradient_start} onChange={e => setConfig({ ...config, banner_gradient_start: e.target.value })} className="w-12 h-12 rounded-xl cursor-pointer border" /><span className="text-sm text-gray-500">{config.banner_gradient_start}</span></div></div>
+                      <div><label className="text-sm text-gray-600 mb-1 block">Cor Final</label><div className="flex items-center gap-3"><input type="color" value={config.banner_gradient_end} onChange={e => setConfig({ ...config, banner_gradient_end: e.target.value })} className="w-12 h-12 rounded-xl cursor-pointer border" /><span className="text-sm text-gray-500">{config.banner_gradient_end}</span></div></div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Logo Tab */}
+              {/* Logo tab */}
               {activeTab === 'logo' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Logo</h2>
+                  <div><label className="text-sm text-gray-600 mb-1 block">URL da Logo</label><input className="input-field" placeholder="https://..." value={config.logo_url} onChange={e => setConfig({ ...config, logo_url: e.target.value })} /></div>
                   <div>
-                    <label className="text-sm text-gray-600 mb-1 block">URL da Logo</label>
-                    <input className="input-field" placeholder="https://..." value={config.logo_url} onChange={e => setConfig({ ...config, logo_url: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1 block">Posição da Logo</label>
+                    <label className="text-sm text-gray-600 mb-1 block">Posição</label>
                     <div className="grid grid-cols-3 gap-2">
                       {['left', 'center', 'right'].map(pos => (
                         <button key={pos} onClick={() => setConfig({ ...config, logo_position: pos })}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                            config.logo_position === pos ? 'border-go-500 bg-go-50 text-go-700' : 'border-gray-200 text-gray-600'
-                          }`}>
+                          className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${config.logo_position === pos ? 'border-go-500 bg-go-50 text-go-700' : 'border-gray-200 text-gray-600'}`}>
                           {pos === 'left' ? 'Esquerda' : pos === 'center' ? 'Centro' : 'Direita'}
                         </button>
                       ))}
                     </div>
                   </div>
-                  {config.logo_url && (
-                    <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                      <p className="text-xs text-gray-400 mb-2">Prévia:</p>
-                      <img src={config.logo_url} alt="Logo" className="max-h-16 object-contain mx-auto" />
-                    </div>
-                  )}
+                  {config.logo_url && <div className="border border-gray-200 rounded-xl p-4 bg-gray-50"><p className="text-xs text-gray-400 mb-2">Prévia:</p><img src={config.logo_url} alt="Logo" className="max-h-16 object-contain mx-auto" /></div>}
                 </div>
               )}
 
-              {/* Video Tab */}
+              {/* Video tab */}
               {activeTab === 'video' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Vídeo</h2>
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1 block">URL do Vídeo (YouTube/Vimeo)</label>
-                    <input className="input-field" placeholder="https://youtube.com/watch?v=..." value={config.video_url} onChange={e => setConfig({ ...config, video_url: e.target.value })} />
-                  </div>
+                  <div><label className="text-sm text-gray-600 mb-1 block">URL do Vídeo (YouTube/Vimeo)</label><input className="input-field" placeholder="https://youtube.com/watch?v=..." value={config.video_url} onChange={e => setConfig({ ...config, video_url: e.target.value })} /></div>
                   <div className="flex items-center gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={config.video_autoplay} onChange={e => setConfig({ ...config, video_autoplay: e.target.checked })}
-                        className="w-4 h-4 text-go-500 rounded" />
-                      <span className="text-sm">Autoplay</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={config.video_loop} onChange={e => setConfig({ ...config, video_loop: e.target.checked })}
-                        className="w-4 h-4 text-go-500 rounded" />
-                      <span className="text-sm">Loop</span>
-                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={config.video_autoplay} onChange={e => setConfig({ ...config, video_autoplay: e.target.checked })} className="w-4 h-4 text-go-500 rounded" /><span className="text-sm">Autoplay</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={config.video_loop} onChange={e => setConfig({ ...config, video_loop: e.target.checked })} className="w-4 h-4 text-go-500 rounded" /><span className="text-sm">Loop</span></label>
                   </div>
                 </div>
               )}
 
-              {/* Quiz Tab */}
+              {/* Quiz tab */}
               {activeTab === 'quiz' && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Quiz</h2>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <span className="text-sm">Ativar Quiz</span>
-                      <button onClick={() => setConfig({ ...config, quiz_enabled: !config.quiz_enabled })}
-                        className={`w-10 h-6 rounded-full transition-colors ${config.quiz_enabled ? 'bg-go-500' : 'bg-gray-300'}`}>
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.quiz_enabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
+                    <label className="flex items-center gap-2 cursor-pointer"><span className="text-sm">Ativar</span>
+                      <button onClick={() => setConfig({ ...config, quiz_enabled: !config.quiz_enabled })} className={`w-10 h-6 rounded-full transition-colors ${config.quiz_enabled ? 'bg-go-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.quiz_enabled ? 'translate-x-5' : 'translate-x-1'}`} /></button>
                     </label>
                   </div>
                   {config.quiz_enabled && (
                     <>
-                      <div>
-                        <label className="text-sm text-gray-600 mb-1 block">Título do Quiz</label>
-                        <input className="input-field" value={config.quiz_title} onChange={e => setConfig({ ...config, quiz_title: e.target.value })} />
-                      </div>
+                      <div><label className="text-sm text-gray-600 mb-1 block">Título</label><input className="input-field" value={config.quiz_title} onChange={e => setConfig({ ...config, quiz_title: e.target.value })} /></div>
                       {config.quiz_questions.map((q: any, idx: number) => (
                         <div key={q.id} className="border border-gray-200 rounded-xl p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium">Pergunta {idx + 1}</span>
-                            <button onClick={() => setConfig({ ...config, quiz_questions: config.quiz_questions.filter((_: any, i: number) => i !== idx) })}
-                              className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                          <div className="flex items-center justify-between mb-3"><span className="text-sm font-medium">Pergunta {idx + 1}</span>
+                            <button onClick={() => setConfig({ ...config, quiz_questions: config.quiz_questions.filter((_: any, i: number) => i !== idx) })} className="text-red-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                           </div>
-                          <input className="input-field mb-3" value={q.question} onChange={e => {
-                            const qs = [...config.quiz_questions];
-                            qs[idx] = { ...qs[idx], question: e.target.value };
-                            setConfig({ ...config, quiz_questions: qs });
-                          }} placeholder="Digite a pergunta" />
+                          <input className="input-field mb-3" value={q.question} onChange={e => { const qs = [...config.quiz_questions]; qs[idx] = { ...qs[idx], question: e.target.value }; setConfig({ ...config, quiz_questions: qs }); }} placeholder="Digite a pergunta" />
                           <div className="space-y-2">
                             {q.options.map((opt: string, oi: number) => (
                               <div key={oi} className="flex items-center gap-2">
-                                <input className="input-field flex-1 text-sm" value={opt} onChange={e => {
-                                  const qs = [...config.quiz_questions];
-                                  qs[idx].options[oi] = e.target.value;
-                                  setConfig({ ...config, quiz_questions: qs });
-                                }} />
-                                <button onClick={() => {
-                                  const qs = [...config.quiz_questions];
-                                  qs[idx].options.splice(oi, 1);
-                                  setConfig({ ...config, quiz_questions: qs });
-                                }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                <input className="input-field flex-1 text-sm" value={opt} onChange={e => { const qs = [...config.quiz_questions]; qs[idx].options[oi] = e.target.value; setConfig({ ...config, quiz_questions: qs }); }} />
+                                <button onClick={() => { const qs = [...config.quiz_questions]; qs[idx].options.splice(oi, 1); setConfig({ ...config, quiz_questions: qs }); }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                               </div>
                             ))}
-                            <button onClick={() => {
-                              const qs = [...config.quiz_questions];
-                              qs[idx].options.push('');
-                              setConfig({ ...config, quiz_questions: qs });
-                            }} className="text-sm text-go-600 hover:text-go-700 flex items-center gap-1"><Plus className="w-3 h-3" /> Adicionar opção</button>
+                            <button onClick={() => { const qs = [...config.quiz_questions]; qs[idx].options.push(''); setConfig({ ...config, quiz_questions: qs }); }} className="text-sm text-go-600 hover:text-go-700 flex items-center gap-1"><Plus className="w-3 h-3" /> Adicionar opção</button>
                           </div>
                         </div>
                       ))}
-                      <button onClick={() => setConfig({ ...config, quiz_questions: [...config.quiz_questions, { id: String(Date.now()), question: '', options: ['', ''], type: 'single' }] })}
-                        className="btn-secondary !py-2 !px-4 text-sm flex items-center gap-2"><Plus className="w-4 h-4" /> Adicionar Pergunta</button>
+                      <button onClick={() => setConfig({ ...config, quiz_questions: [...config.quiz_questions, { id: String(Date.now()), question: '', options: ['', ''], type: 'single' }] })} className="btn-secondary !py-2 !px-4 text-sm flex items-center gap-2"><Plus className="w-4 h-4" /> Adicionar Pergunta</button>
                     </>
                   )}
                 </div>
               )}
 
-              {/* Gallery Tab */}
+              {/* Gallery tab */}
               {activeTab === 'gallery' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Galeria de Imagens</h2>
                   <div className="flex gap-2">
                     <input className="input-field flex-1" placeholder="URL da imagem" value={newGalleryUrl} onChange={e => setNewGalleryUrl(e.target.value)} />
-                    <button onClick={addGalleryImage} className="btn-primary !py-2 !px-4 text-sm"><Plus className="w-4 h-4" /></button>
+                    <button onClick={() => addGalleryImage()} className="btn-primary !py-2 !px-4 text-sm"><Plus className="w-4 h-4" /></button>
+                    <label className="btn-secondary !py-2 !px-3 cursor-pointer"><Upload className="w-4 h-4" /><input type="file" accept="image/*" onChange={e => handleFileUpload(e, 'gallery')} className="hidden" /></label>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600 mb-1 block">Layout da Galeria</label>
+                    <label className="text-sm text-gray-600 mb-1 block">Layout</label>
                     <div className="grid grid-cols-3 gap-2">
                       {['grid', 'carousel', 'list'].map(layout => (
-                        <button key={layout} onClick={() => setConfig({ ...config, gallery_layout: layout })}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                            config.gallery_layout === layout ? 'border-go-500 bg-go-50 text-go-700' : 'border-gray-200 text-gray-600'
-                          }`}>
+                        <button key={layout} onClick={() => setConfig({ ...config, gallery_layout: layout })} className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${config.gallery_layout === layout ? 'border-go-500 bg-go-50 text-go-700' : 'border-gray-200 text-gray-600'}`}>
                           {layout === 'grid' ? 'Grade' : layout === 'carousel' ? 'Carrossel' : 'Lista'}
                         </button>
                       ))}
@@ -413,20 +402,18 @@ export default function Editor() {
                       {config.gallery_images.map((img, idx) => (
                         <div key={idx} className="relative group rounded-xl overflow-hidden border">
                           <img src={img} alt="" className="w-full h-24 object-cover" />
-                          <button onClick={() => removeGallery(idx)}
-                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openPhotoEditor(img, idx)} className="bg-white p-1.5 rounded-lg shadow hover:bg-gray-50"><Crop className="w-3 h-3" /></button>
+                            <button onClick={() => removeGallery(idx)} className="bg-red-500 text-white p-1.5 rounded-lg shadow hover:bg-red-600"><Trash2 className="w-3 h-3" /></button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-gray-400">Ou escolha imagens da galeria:</p>
+                  <p className="text-xs text-gray-400">Modelos:</p>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {galleryTemplates.map(img => (
-                      <button key={img.id} onClick={() => {
-                        setConfig({ ...config, gallery_images: [...config.gallery_images, img.url] });
-                      }} className="rounded-lg overflow-hidden border hover:border-go-300 transition-all">
+                      <button key={img.id} onClick={() => addGalleryImage(img.url)} className="rounded-lg overflow-hidden border hover:border-go-300 transition-all">
                         <img src={img.url} alt={img.label} className="w-full h-16 object-cover" />
                         <p className="text-[10px] text-center text-gray-500 truncate">{img.label}</p>
                       </button>
@@ -435,17 +422,13 @@ export default function Editor() {
                 </div>
               )}
 
-              {/* Reviews Tab */}
+              {/* Reviews tab */}
               {activeTab === 'reviews' && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Avaliações</h2>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <span className="text-sm">Mostrar Avaliações</span>
-                      <button onClick={() => setConfig({ ...config, reviews_enabled: !config.reviews_enabled })}
-                        className={`w-10 h-6 rounded-full transition-colors ${config.reviews_enabled ? 'bg-go-500' : 'bg-gray-300'}`}>
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.reviews_enabled ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
+                    <label className="flex items-center gap-2 cursor-pointer"><span className="text-sm">Mostrar</span>
+                      <button onClick={() => setConfig({ ...config, reviews_enabled: !config.reviews_enabled })} className={`w-10 h-6 rounded-full transition-colors ${config.reviews_enabled ? 'bg-go-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.reviews_enabled ? 'translate-x-5' : 'translate-x-1'}`} /></button>
                     </label>
                   </div>
                   {config.reviews_enabled && (
@@ -453,29 +436,17 @@ export default function Editor() {
                       <div className="border border-gray-200 rounded-xl p-4 space-y-3">
                         <h3 className="text-sm font-medium">Adicionar Avaliação</h3>
                         <div className="grid grid-cols-2 gap-3">
-                          <input className="input-field text-sm" placeholder="Nome do cliente" value={newReview.name}
-                            onChange={e => setNewReview({ ...newReview, name: e.target.value })} />
-                          <div className="flex items-center gap-1">
-                            {[1,2,3,4,5].map(s => (
-                              <button key={s} onClick={() => setNewReview({ ...newReview, rating: s })}
-                                className={`p-1 ${s <= newReview.rating ? 'text-yellow-400' : 'text-gray-300'}`}>
-                                <Star className="w-5 h-5 fill-current" />
-                              </button>
-                            ))}
-                          </div>
+                          <input className="input-field text-sm" placeholder="Nome" value={newReview.name} onChange={e => setNewReview({ ...newReview, name: e.target.value })} />
+                          <div className="flex items-center gap-1">{[1,2,3,4,5].map(s => (<button key={s} onClick={() => setNewReview({ ...newReview, rating: s })} className={`p-1 ${s <= newReview.rating ? 'text-yellow-400' : 'text-gray-300'}`}><Star className="w-5 h-5 fill-current" /></button>))}</div>
                         </div>
-                        <textarea className="input-field text-sm" placeholder="Comentário..." rows={2} value={newReview.comment}
-                          onChange={e => setNewReview({ ...newReview, comment: e.target.value })} />
+                        <textarea className="input-field text-sm" placeholder="Comentário..." rows={2} value={newReview.comment} onChange={e => setNewReview({ ...newReview, comment: e.target.value })} />
                         <button onClick={addReview} className="btn-primary !py-1.5 !px-3 text-sm"><Plus className="w-4 h-4 inline mr-1" /> Adicionar</button>
                       </div>
                       {config.reviews.map((r: any, idx: number) => (
                         <div key={r.id || idx} className="border border-gray-100 rounded-xl p-4 flex items-start justify-between">
                           <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-sm">{r.name}</span>
-                              <div className="flex">{Array.from({length: 5}).map((_, i) => (
-                                <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                              ))}</div>
+                            <div className="flex items-center gap-2 mb-1"><span className="font-medium text-sm">{r.name}</span>
+                              <div className="flex">{Array.from({length: 5}).map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />))}</div>
                             </div>
                             <p className="text-sm text-gray-600">{r.comment}</p>
                           </div>
@@ -487,43 +458,23 @@ export default function Editor() {
                 </div>
               )}
 
-              {/* Colors Tab */}
+              {/* Colors tab */}
               {activeTab === 'colors' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Cores do Tema</h2>
                   <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { key: 'primary_color', label: 'Cor Primária' },
-                      { key: 'secondary_color', label: 'Cor Secundária' },
-                      { key: 'background_color', label: 'Fundo' },
-                      { key: 'text_color', label: 'Texto' },
-                      { key: 'button_color', label: 'Botão' },
-                      { key: 'button_text_color', label: 'Texto do Botão' },
-                    ].map(({ key, label }) => (
-                      <div key={key}>
-                        <label className="text-sm text-gray-600 mb-1 block">{label}</label>
-                        <div className="flex items-center gap-3">
-                          <input type="color" value={(config as any)[key]} onChange={e => setConfig({ ...config, [key]: e.target.value })}
-                            className="w-10 h-10 rounded-lg cursor-pointer border" />
-                          <span className="text-xs text-gray-500 font-mono">{(config as any)[key]}</span>
-                        </div>
+                    {[{ key: 'primary_color', label: 'Cor Primária' }, { key: 'secondary_color', label: 'Cor Secundária' }, { key: 'background_color', label: 'Fundo' }, { key: 'text_color', label: 'Texto' }, { key: 'button_color', label: 'Botão' }, { key: 'button_text_color', label: 'Texto Botão' }].map(({ key, label }) => (
+                      <div key={key}><label className="text-sm text-gray-600 mb-1 block">{label}</label>
+                        <div className="flex items-center gap-3"><input type="color" value={(config as any)[key]} onChange={e => setConfig({ ...config, [key]: e.target.value })} className="w-10 h-10 rounded-lg cursor-pointer border" /><span className="text-xs text-gray-500 font-mono">{(config as any)[key]}</span></div>
                       </div>
                     ))}
                   </div>
                   <div>
                     <label className="text-sm text-gray-600 mb-1 block">Tema Pré-definido</label>
                     <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { id: 'default', label: 'Padrão', colors: ['#22c55e', '#6366f1', '#ffffff', '#111827'] },
-                        { id: 'dark', label: 'Escuro', colors: ['#22c55e', '#818cf8', '#0f172a', '#f1f5f9'] },
-                        { id: 'minimal', label: 'Minimal', colors: ['#000000', '#666666', '#ffffff', '#111827'] },
-                        { id: 'custom', label: 'Customizado', colors: [config.primary_color, config.secondary_color, config.background_color, config.text_color] },
-                      ].map(t => (
-                        <button key={t.id} onClick={() => setConfig({ ...config, theme: t.id })}
-                          className={`p-3 rounded-xl border text-center transition-all ${config.theme === t.id ? 'border-go-500 ring-2 ring-go-200' : 'border-gray-200'}`}>
-                          <div className="flex gap-1 justify-center mb-2">
-                            {t.colors.map((c, i) => <div key={i} className="w-4 h-4 rounded-full border" style={{ backgroundColor: c }} />)}
-                          </div>
+                      {[{ id: 'default', label: 'Padrão', colors: ['#22c55e', '#6366f1', '#ffffff', '#111827'] }, { id: 'dark', label: 'Escuro', colors: ['#22c55e', '#818cf8', '#0f172a', '#f1f5f9'] }, { id: 'minimal', label: 'Minimal', colors: ['#000000', '#666666', '#ffffff', '#111827'] }, { id: 'custom', label: 'Custom', colors: [config.primary_color, config.secondary_color, config.background_color, config.text_color] }].map(t => (
+                        <button key={t.id} onClick={() => setConfig({ ...config, theme: t.id })} className={`p-3 rounded-xl border text-center transition-all ${config.theme === t.id ? 'border-go-500 ring-2 ring-go-200' : 'border-gray-200'}`}>
+                          <div className="flex gap-1 justify-center mb-2">{t.colors.map((c, i) => <div key={i} className="w-4 h-4 rounded-full border" style={{ backgroundColor: c }} />)}</div>
                           <span className="text-xs">{t.label}</span>
                         </button>
                       ))}
@@ -532,99 +483,91 @@ export default function Editor() {
                 </div>
               )}
 
-              {/* Advanced Tab */}
+              {/* Advanced tab */}
               {activeTab === 'advanced' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold">Avançado</h2>
-                  {/* White Label Toggle (mobile) */}
                   <div className="lg:hidden border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">White Label</p>
-                        <p className="text-xs text-gray-500">Remover marca GoPay</p>
-                      </div>
-                      <button onClick={() => setConfig({ ...config, white_label: !config.white_label })}
-                        className={`w-10 h-6 rounded-full transition-colors ${config.white_label ? 'bg-go-500' : 'bg-gray-300'}`}>
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.white_label ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
+                      <div><p className="text-sm font-medium text-gray-900">White Label</p><p className="text-xs text-gray-500">Remover marca GoPay</p></div>
+                      <button onClick={() => setConfig({ ...config, white_label: !config.white_label })} className={`w-10 h-6 rounded-full transition-colors ${config.white_label ? 'bg-go-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${config.white_label ? 'translate-x-5' : 'translate-x-1'}`} /></button>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1 block">CSS Personalizado</label>
-                    <textarea className="input-field font-mono text-sm" rows={6} placeholder="/* Seu CSS aqui */" value={config.custom_css}
-                      onChange={e => setConfig({ ...config, custom_css: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600 mb-1 block">JavaScript Personalizado</label>
-                    <textarea className="input-field font-mono text-sm" rows={6} placeholder="// Seu JS aqui" value={config.custom_js}
-                      onChange={e => setConfig({ ...config, custom_js: e.target.value })} />
-                  </div>
+                  <div><label className="text-sm text-gray-600 mb-1 block">CSS Personalizado</label><textarea className="input-field font-mono text-sm" rows={6} placeholder="/* Seu CSS aqui */" value={config.custom_css} onChange={e => setConfig({ ...config, custom_css: e.target.value })} /></div>
+                  <div><label className="text-sm text-gray-600 mb-1 block">JavaScript Personalizado</label><textarea className="input-field font-mono text-sm" rows={6} placeholder="// Seu JS aqui" value={config.custom_js} onChange={e => setConfig({ ...config, custom_js: e.target.value })} /></div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Preview Panel */}
+          {/* Preview panel - Hotmart style */}
           <div className={`${preview ? 'flex' : 'hidden lg:flex'} flex-col w-full lg:w-[420px] bg-gray-100 rounded-2xl overflow-hidden ${previewDevice === 'mobile' ? 'max-w-[375px] mx-auto' : ''} ${preview ? 'flex-1 lg:flex-none' : ''}`}>
             <div className="bg-white px-4 py-2 border-b border-gray-100 text-center text-xs text-gray-400 flex-shrink-0">
-              {preview ? 'Prévia do Checkout' : 'Prévia'} {previewDevice === 'mobile' ? '(Mobile)' : '(Desktop)'}
+              Prévia do Checkout {previewDevice === 'mobile' ? '(Mobile)' : '(Desktop)'}
             </div>
-              <div className="flex-1 overflow-y-auto bg-white">
-              {/* Preview Content - Realistic Checkout */}
+            <div className="flex-1 overflow-y-auto bg-white">
               <div style={{ backgroundColor: config.background_color, color: config.text_color }}>
-                {/* Banner */}
+                {/* Full-width hero banner - bigger */}
                 {config.banner_type === 'image' && config.banner_url && (
-                  <img src={config.banner_url} alt="Banner" className="w-full h-40 sm:h-48 object-cover" />
+                  <div className="w-full relative">
+                    <img src={config.banner_url} alt="Banner" className="w-full h-72 sm:h-96 object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <h1 className="text-white text-2xl sm:text-3xl font-bold drop-shadow-lg">Nome do Produto</h1>
+                      <p className="text-white/80 text-sm drop-shadow">Descrição curta do produto</p>
+                    </div>
+                  </div>
                 )}
                 {config.banner_type === 'color' && config.banner_color && (
-                  <div className="w-full h-32 sm:h-40" style={{ backgroundColor: config.banner_color }} />
+                  <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ backgroundColor: config.banner_color }}>
+                    <div>
+                      <h1 className="text-white text-2xl sm:text-3xl font-bold">Nome do Produto</h1>
+                      <p className="text-white/80 text-sm">Descrição curta do produto</p>
+                    </div>
+                  </div>
                 )}
                 {config.banner_type === 'gradient' && (
-                  <div className="w-full h-32 sm:h-40" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start}, ${config.banner_gradient_end})` }} />
+                  <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start || '#10b981'}, ${config.banner_gradient_end || '#6366f1'})` }}>
+                    <div>
+                      <h1 className="text-white text-2xl sm:text-3xl font-bold">Nome do Produto</h1>
+                      <p className="text-white/80 text-sm">Descrição curta do produto</p>
+                    </div>
+                  </div>
                 )}
 
                 <div className="p-4 sm:p-6">
-                  {/* Logo */}
                   {config.logo_url && (
-                    <div className={`flex justify-${config.logo_position} mb-6`}>
-                      <img src={config.logo_url} alt="Logo" className="max-h-14 object-contain" />
+                    <div className={`flex justify-${config.logo_position} mb-4`}>
+                      <img src={config.logo_url} alt="Logo" className="max-h-10 object-contain" />
                     </div>
                   )}
 
-                  {/* GoPay Badge */}
-                  {!config.hide_gopay_branding && !config.white_label && (
-                    <div className="text-center mb-6">
-                      <div className="inline-flex items-center gap-2 bg-gradient-to-br from-go-500 to-primary-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm">
-                        <DollarSign className="w-4 h-4" /> GoPay
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Product Card */}
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm mb-6">
-                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                      <Package className="w-16 h-16 text-gray-300" />
-                    </div>
+                  {/* Product card */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5">
                     <div className="p-5">
-                      <h2 className="text-xl font-bold text-gray-900 mb-1">Nome do Produto</h2>
-                      <p className="text-sm text-gray-500 mb-4">Descrição do produto aparecerá aqui</p>
-                      <div className="text-3xl font-extrabold mb-4" style={{ color: config.primary_color }}>R$ 97,00</div>
+                      <p className="text-xs text-gray-500 mb-1">Autor: Seu Nome</p>
+                      <h2 className="text-xl font-bold text-gray-900 mb-2">Nome do Produto</h2>
+                      <p className="text-sm text-gray-500 mb-4">Descrição detalhada do produto com benefícios e características principais.</p>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-xs text-gray-400">12x de</span>
+                        <span className="text-lg font-bold text-gray-400">R$ 8,08</span>
+                      </div>
+                      <div className="text-3xl font-extrabold mb-4" style={{ color: config.primary_color }}>R$ 97,00 à vista</div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                        <Check className="w-3.5 h-3.5 text-go-500" /> Pagamento 100% seguro
+                      </div>
                     </div>
                   </div>
 
-                  {/* Video */}
                   {config.video_url && (
-                    <div className="mb-6 aspect-video bg-gray-100 rounded-xl flex items-center justify-center">
-                      <a href={config.video_url} target="_blank" className="flex items-center gap-2 text-go-600">
-                        <Play className="w-8 h-8" /> <span className="text-sm">Assistir Vídeo</span>
-                      </a>
+                    <div className="mb-5 aspect-video bg-gray-100 rounded-xl flex items-center justify-center">
+                      <a href={config.video_url} target="_blank" className="flex items-center gap-2" style={{ color: config.primary_color }}><Play className="w-8 h-8" /> <span className="text-sm">Assistir Vídeo</span></a>
                     </div>
                   )}
 
-                  {/* Quiz */}
                   {config.quiz_enabled && config.quiz_questions.length > 0 && (
-                    <div className="mb-6 bg-white rounded-2xl border border-gray-100 p-4">
-                      <h3 className="font-semibold mb-3" style={{ color: config.text_color }}>{config.quiz_title}</h3>
+                    <div className="mb-5 bg-white rounded-2xl border border-gray-100 p-4">
+                      <h3 className="font-semibold mb-3" style={{ color: config.text_color }}>{config.quiz_title || 'Quiz'}</h3>
                       {config.quiz_questions.slice(0, 1).map((q: any, idx: number) => (
                         <div key={idx} className="space-y-2">
                           <p className="text-sm font-medium">{q.question}</p>
@@ -639,49 +582,66 @@ export default function Editor() {
                     </div>
                   )}
 
-                  {/* Gallery */}
                   {config.gallery_images.length > 0 && (
-                    <div className={`mb-6 grid ${config.gallery_layout === 'grid' ? 'grid-cols-2 gap-2' : 'grid-cols-1 gap-2'}`}>
+                    <div className={`mb-5 grid ${config.gallery_layout === 'grid' ? 'grid-cols-2 gap-2' : 'grid-cols-1 gap-2'}`}>
                       {config.gallery_images.slice(0, 4).map((img, idx) => (
-                        <div key={idx} className="rounded-xl overflow-hidden">
-                          <img src={img} alt="" className="w-full h-28 object-cover" />
-                        </div>
+                        <div key={idx} className="rounded-xl overflow-hidden"><img src={img} alt="" className="w-full h-28 object-cover" /></div>
                       ))}
                     </div>
                   )}
 
-                  {/* Customer Form */}
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 space-y-3">
-                    <h3 className="font-semibold text-gray-900 mb-3">Dados do Cliente</h3>
+                  {/* Customer form section */}
+                  <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5 space-y-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      Dados pessoais
+                    </h3>
                     <input className="input-field text-sm" placeholder="Nome completo" disabled />
                     <input className="input-field text-sm" placeholder="Email" disabled />
                     <input className="input-field text-sm" placeholder="Telefone" disabled />
                     <input className="input-field text-sm" placeholder="CPF" disabled />
                   </div>
 
-                  {/* Buy Button */}
-                  <button style={{ backgroundColor: config.button_color, color: config.button_text_color }}
-                    className="w-full py-4 rounded-xl font-bold text-lg shadow-lg mb-6 transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                    Pagar com Pix
-                  </button>
+                  {/* Pix payment section */}
+                  <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" style={{ color: config.primary_color }} /> Pagamento
+                    </h3>
+                    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <DollarSign className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Pix</p>
+                          <p className="text-xs text-gray-500">Pagamento instantâneo</p>
+                        </div>
+                        <div className="ml-auto w-5 h-5 rounded-full border-2 border-green-500 flex items-center justify-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                        </div>
+                      </div>
+                    </div>
+                    <button style={{ backgroundColor: config.button_color, color: config.button_text_color }}
+                      className="w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                      Comprar agora
+                    </button>
+                  </div>
 
-                  {/* Reviews */}
+                  {/* Security badges */}
+                  <div className="flex items-center justify-center gap-4 text-xs text-gray-400 mb-5">
+                    <div className="flex items-center gap-1.5"><Check className="w-3 h-3 text-go-500" /> Pagamento seguro</div>
+                    <div className="flex items-center gap-1.5"><Check className="w-3 h-3 text-go-500" /> Dados protegidos</div>
+                  </div>
+
                   {config.reviews_enabled && config.reviews.length > 0 && (
                     <div className="border-t border-gray-100 pt-4 mt-4">
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" /> Avaliações ({config.reviews.length})
-                      </h3>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2"><Star className="w-4 h-4 text-yellow-400 fill-current" /> Avaliações ({config.reviews.length})</h3>
                       {config.reviews.slice(0, 3).map((r: any, idx: number) => (
                         <div key={idx} className="border-b border-gray-50 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-br from-go-500 to-primary-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                              {r.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium">{r.name}</span>
-                              <div className="flex">{Array.from({length: 5}).map((_, i) => (
-                                <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                              ))}</div>
+                            <div className="w-8 h-8 bg-gradient-to-br from-go-500 to-primary-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{r.name.charAt(0).toUpperCase()}</div>
+                            <div><span className="text-sm font-medium">{r.name}</span>
+                              <div className="flex">{Array.from({length: 5}).map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />))}</div>
                             </div>
                           </div>
                           <p className="text-xs text-gray-500 mt-1 ml-10">{r.comment}</p>
@@ -690,10 +650,13 @@ export default function Editor() {
                     </div>
                   )}
 
-                  {/* Footer */}
                   {!config.white_label && (
-                    <div className="text-center mt-6 pt-4 border-t border-gray-100">
-                      <span className="text-xs text-gray-400">GoPay - Pagamento processado com segurança</span>
+                    <div className="text-center pt-4 border-t border-gray-100">
+                      <div className="inline-flex items-center gap-2 text-xs text-gray-400">
+                        <span className="w-1 h-1 rounded-full bg-gray-300" />
+                        GoPay - Pagamento processado com segurança
+                        <span className="w-1 h-1 rounded-full bg-gray-300" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -702,7 +665,37 @@ export default function Editor() {
           </div>
         </div>
       </div>
+
+      {/* Photo Editor Modal */}
+      {photoEditor.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setPhotoEditor({ open: false, url: '' })}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Editar Imagem</h2>
+            <div className="space-y-4">
+              <div className="relative rounded-xl overflow-hidden border bg-gray-100">
+                <canvas ref={photoCanvasRef} className="w-full max-h-64 object-contain" />
+                <img src={photoEditor.url} alt="Editar" className="hidden"
+                  onLoad={(e) => {
+                    photoSourceRef.current = e.currentTarget;
+                    renderPhotoFilters();
+                  }} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Sun className="w-3 h-3" /> Brilho {photoBrightness}%</label><input type="range" min="0" max="200" value={photoBrightness} onChange={e => setPhotoBrightness(Number(e.target.value))} className="w-full" /></div>
+                <div><label className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Contrast className="w-3 h-3" /> Contraste {photoContrast}%</label><input type="range" min="0" max="200" value={photoContrast} onChange={e => setPhotoContrast(Number(e.target.value))} className="w-full" /></div>
+                <div><label className="text-xs text-gray-500 mb-1">Preto e Branco</label><input type="range" min="0" max="100" value={photoGrayscale} onChange={e => setPhotoGrayscale(Number(e.target.value))} className="w-full" /></div>
+                <div><label className="text-xs text-gray-500 mb-1">Sépia</label><input type="range" min="0" max="100" value={photoSepia} onChange={e => setPhotoSepia(Number(e.target.value))} className="w-full" /></div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => { setPhotoBrightness(100); setPhotoContrast(100); setPhotoGrayscale(0); setPhotoSepia(0); }} className="btn-secondary flex-1 flex items-center justify-center gap-2"><Undo2 className="w-4 h-4" /> Resetar</button>
+                <button onClick={applyPhotoEdit} className="btn-primary flex-1"><Check className="w-4 h-4 inline mr-1" /> Aplicar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <AIChat context="editor" />
     </div>
   );
 }
+
