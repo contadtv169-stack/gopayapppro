@@ -190,8 +190,12 @@ CREATE POLICY "users_update_own_notifications" ON notifications FOR UPDATE USING
 -- Gateway credentials
 DROP POLICY IF EXISTS "users_select_own_gateways" ON gateway_credentials;
 DROP POLICY IF EXISTS "users_insert_own_gateways" ON gateway_credentials;
+DROP POLICY IF EXISTS "users_update_own_gateways" ON gateway_credentials;
+DROP POLICY IF EXISTS "users_delete_own_gateways" ON gateway_credentials;
 CREATE POLICY "users_select_own_gateways" ON gateway_credentials FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "users_insert_own_gateways" ON gateway_credentials FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "users_update_own_gateways" ON gateway_credentials FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "users_delete_own_gateways" ON gateway_credentials FOR DELETE USING (auth.uid() = user_id);
 
 -- WhatsApp config
 DROP POLICY IF EXISTS "users_select_own_whatsapp" ON whatsapp_config;
