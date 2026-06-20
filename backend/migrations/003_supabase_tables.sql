@@ -260,3 +260,18 @@ CREATE POLICY "users_insert_plaques" ON plaques FOR INSERT WITH CHECK (auth.uid(
 CREATE POLICY "users_update_plaques" ON plaques FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "users_delete_plaques" ON plaques FOR DELETE USING (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_plaques_user_id ON plaques(user_id);
+
+-- Add redirect_url column to customizations if not exists
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS redirect_url TEXT DEFAULT '';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS banner_color VARCHAR(7) DEFAULT '#22c55e';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS banner_gradient_start VARCHAR(7) DEFAULT '#22c55e';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS banner_gradient_end VARCHAR(7) DEFAULT '#6366f1';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS button_color VARCHAR(7) DEFAULT '#22c55e';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS button_text_color VARCHAR(7) DEFAULT '#ffffff';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS text_color VARCHAR(7) DEFAULT '#111827';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS background_color VARCHAR(7) DEFAULT '#ffffff';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS logo_position VARCHAR(10) DEFAULT 'center';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS gallery_layout VARCHAR(20) DEFAULT 'grid';
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS quiz_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS reviews_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE customizations ADD COLUMN IF NOT EXISTS white_label BOOLEAN DEFAULT FALSE;

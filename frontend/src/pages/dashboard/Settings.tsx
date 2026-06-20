@@ -79,11 +79,25 @@ export default function Settings() {
     setTestingGateway(gateway);
     setGatewayStatus(prev => ({ ...prev, [gateway]: 'testing' }));
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const gw = gatewayInfo[gateway as keyof typeof gatewayInfo];
+      const fields: Record<string, string> = {};
+      gw.fields.forEach((f: any) => {
+        const el = document.querySelector(`[placeholder="${gw.name} ${f.label}"]`) as HTMLInputElement;
+        fields[f.key] = el?.value || '';
+      });
+      const emptyFields = gw.fields.filter((f: any) => !fields[f.key]).map((f: any) => f.label);
+      if (emptyFields.length > 0) {
+        setGatewayStatus(prev => ({ ...prev, [gateway]: 'error' }));
+        toast.error(`Preencha: ${emptyFields.join(', ')}`);
+        setTestingGateway(null);
+        return;
+      }
+      await saveGateway(gateway, fields);
       setGatewayStatus(prev => ({ ...prev, [gateway]: 'online' }));
-      toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} conectado!`);
-    } catch {
+      toast.success(`${gw.name} conectado e salvo!`);
+    } catch (err: any) {
       setGatewayStatus(prev => ({ ...prev, [gateway]: 'error' }));
+      toast.error(err.message || 'Falha ao conectar');
     } finally { setTestingGateway(null); }
   };
 

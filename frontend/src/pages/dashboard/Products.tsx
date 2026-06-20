@@ -25,12 +25,15 @@ export default function Products() {
 
   const save = async () => {
     if (!form.name || !form.price) return toast.error('Nome e preço são obrigatórios');
+    const priceNum = Number(form.price);
+    if (priceNum < 10) return toast.error('Preço mínimo é R$ 10,00 (taxa GoPay R$ 7,00)');
+    if (priceNum < 19) toast('Preço baixo! Com taxa GoPay de R$ 7,00, você receberá apenas R$ ' + (priceNum - 7).toFixed(2), { icon: '⚠️' });
     try {
       if (editing) {
-        await updateProduct(editing.id, { ...form, price: Number(form.price) });
+        await updateProduct(editing.id, { ...form, price: priceNum });
         toast.success('Produto atualizado');
       } else {
-        await createProduct({ ...form, price: Number(form.price) });
+        await createProduct({ ...form, price: priceNum });
         toast.success('Produto criado');
       }
       setShowModal(false); load();

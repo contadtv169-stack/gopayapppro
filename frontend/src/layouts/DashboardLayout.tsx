@@ -5,6 +5,7 @@ import {
   Bell, Menu, X, ChevronDown, User, PenSquare, MessageCircle, Download, 
   Home, Smartphone, Camera, Trophy
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { logout as authLogout } from '../services/auth';
 import { getUnreadCount, markNotificationRead, getNotifications } from '../services/supabaseData';
 import { AIChat } from '../components/AIChat';
@@ -79,7 +80,7 @@ export default function DashboardLayout({ children, user }: { children: React.Re
   const isActive = (path: string) => path === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(path);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex pb-16 lg:pb-0">
+    <div className="min-h-screen bg-gray-50 flex">
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
           <Link to="/dashboard" className="flex items-center gap-2">
@@ -100,7 +101,7 @@ export default function DashboardLayout({ children, user }: { children: React.Re
           ))}
         </nav>
         <div className="absolute bottom-4 left-4 right-4 space-y-2">
-          <button onClick={() => { if (typeof window !== 'undefined' && 'beforeinstallprompt' in window) return; window.open('/gopayapppro/', '_blank'); }}
+          <button onClick={async () => { try { const promptEvent: any = (window as any).deferredPrompt; if (promptEvent) { promptEvent.prompt(); const result = await promptEvent.userChoice; if (result.outcome === 'accepted') toast.success('App instalado!'); (window as any).deferredPrompt = null; } else { toast('Abra o menu do navegador > Instalar aplicativo'); } } catch { toast('Abra o menu do navegador > Instalar aplicativo'); } }}
             className="w-full flex items-center gap-2 px-4 py-3 bg-go-50 text-go-700 rounded-xl text-sm font-medium hover:bg-go-100 transition-colors">
             <Download className="w-4 h-4" /> Baixar App
           </button>
@@ -166,20 +167,7 @@ export default function DashboardLayout({ children, user }: { children: React.Re
         <main className="flex-1 p-4 lg:p-8 overflow-auto">{children}</main>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden">
-        <div className="flex items-center justify-around h-16">
-          {mobileNav.map((item) => (
-            <Link key={item.path} to={item.path}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
-                isActive(item.path) ? 'text-go-600' : 'text-gray-400'
-              }`}>
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </nav>
+      {/* Mobile Bottom Nav - removed per user request */}
 
       <AIChat context="dashboard" />
       <PWAInstall />

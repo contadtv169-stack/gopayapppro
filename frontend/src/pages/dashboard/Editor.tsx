@@ -60,6 +60,7 @@ export default function Editor() {
     banner_color: '#22c55e',
     banner_gradient_start: '#22c55e',
     banner_gradient_end: '#6366f1',
+    redirect_url: '',
     video_url: '',
     video_autoplay: false,
     video_loop: false,
@@ -200,6 +201,8 @@ export default function Editor() {
     };
     reader.readAsDataURL(file);
   };
+
+  const selectedProductData = products.find(p => String(p.id) === String(selectedProduct));
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-go-500" /></div>;
 
@@ -495,6 +498,7 @@ export default function Editor() {
                   </div>
                   <div><label className="text-sm text-gray-600 mb-1 block">CSS Personalizado</label><textarea className="input-field font-mono text-sm" rows={6} placeholder="/* Seu CSS aqui */" value={config.custom_css} onChange={e => setConfig({ ...config, custom_css: e.target.value })} /></div>
                   <div><label className="text-sm text-gray-600 mb-1 block">JavaScript Personalizado</label><textarea className="input-field font-mono text-sm" rows={6} placeholder="// Seu JS aqui" value={config.custom_js} onChange={e => setConfig({ ...config, custom_js: e.target.value })} /></div>
+                  <div><label className="text-sm text-gray-600 mb-1 block">Link de Redirecionamento</label><input className="input-field" placeholder="https://..." value={config.redirect_url} onChange={e => setConfig({ ...config, redirect_url: e.target.value })} /><p className="text-xs text-gray-400 mt-1">Após a compra, redirecionar para esta URL</p></div>
                 </div>
               )}
             </div>
@@ -513,24 +517,24 @@ export default function Editor() {
                     <img src={config.banner_url} alt="Banner" className="w-full h-72 sm:h-96 object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
-                      <h1 className="text-white text-2xl sm:text-3xl font-bold drop-shadow-lg">Nome do Produto</h1>
-                      <p className="text-white/80 text-sm drop-shadow">Descrição curta do produto</p>
+                      <h1 className="text-white text-2xl sm:text-3xl font-bold drop-shadow-lg">{selectedProductData?.name || 'Selecione um produto'}</h1>
+                      <p className="text-white/80 text-sm drop-shadow">{selectedProductData?.description?.slice(0, 80) || ''}</p>
                     </div>
                   </div>
                 )}
                 {config.banner_type === 'color' && config.banner_color && (
                   <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ backgroundColor: config.banner_color }}>
                     <div>
-                      <h1 className="text-white text-2xl sm:text-3xl font-bold">Nome do Produto</h1>
-                      <p className="text-white/80 text-sm">Descrição curta do produto</p>
+                      <h1 className="text-white text-2xl sm:text-3xl font-bold">{selectedProductData?.name || 'Selecione um produto'}</h1>
+                      <p className="text-white/80 text-sm">{selectedProductData?.description?.slice(0, 80) || ''}</p>
                     </div>
                   </div>
                 )}
                 {config.banner_type === 'gradient' && (
                   <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start || '#10b981'}, ${config.banner_gradient_end || '#6366f1'})` }}>
                     <div>
-                      <h1 className="text-white text-2xl sm:text-3xl font-bold">Nome do Produto</h1>
-                      <p className="text-white/80 text-sm">Descrição curta do produto</p>
+                      <h1 className="text-white text-2xl sm:text-3xl font-bold">{selectedProductData?.name || 'Selecione um produto'}</h1>
+                      <p className="text-white/80 text-sm">{selectedProductData?.description?.slice(0, 80) || ''}</p>
                     </div>
                   </div>
                 )}
@@ -545,14 +549,18 @@ export default function Editor() {
                   {/* Product card */}
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5">
                     <div className="p-5">
-                      <p className="text-xs text-gray-500 mb-1">Autor: Seu Nome</p>
-                      <h2 className="text-xl font-bold text-gray-900 mb-2">Nome do Produto</h2>
-                      <p className="text-sm text-gray-500 mb-4">Descrição detalhada do produto com benefícios e características principais.</p>
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-xs text-gray-400">12x de</span>
-                        <span className="text-lg font-bold text-gray-400">R$ 8,08</span>
-                      </div>
-                      <div className="text-3xl font-extrabold mb-4" style={{ color: config.primary_color }}>R$ 97,00 à vista</div>
+                      <p className="text-xs text-gray-500 mb-1">Autor: {selectedProductData?.name?.split(' ')[0] || 'Vendedor'}</p>
+                      <h2 className="text-xl font-bold text-gray-900 mb-2">{selectedProductData?.name || 'Nenhum produto selecionado'}</h2>
+                      <p className="text-sm text-gray-500 mb-4">{selectedProductData?.description || 'Selecione um produto no menu acima para personalizar o checkout'}</p>
+                      {selectedProductData && (
+                        <>
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-xs text-gray-400">12x de</span>
+                            <span className="text-lg font-bold text-gray-400">R$ {(Number(selectedProductData.price) / 12).toFixed(2)}</span>
+                          </div>
+                          <div className="text-3xl font-extrabold mb-4" style={{ color: config.primary_color }}>R$ {Number(selectedProductData.price).toFixed(2)} à vista</div>
+                        </>
+                      )}
                       <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
                         <Check className="w-3.5 h-3.5 text-go-500" /> Pagamento 100% seguro
                       </div>
@@ -650,7 +658,7 @@ export default function Editor() {
                     </div>
                   )}
 
-                  {!config.white_label && (
+                  {!config.white_label && !config.logo_url && (
                     <div className="text-center pt-4 border-t border-gray-100">
                       <div className="inline-flex items-center gap-2 text-xs text-gray-400">
                         <span className="w-1 h-1 rounded-full bg-gray-300" />

@@ -272,6 +272,7 @@ export default function CheckoutPage() {
                   <div className="w-20 h-20 bg-go-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-10 h-10 text-go-600" /></div>
                   <h2 className="text-2xl font-bold mb-2" style={{ color: tc }}>Pagamento Confirmado!</h2>
                   <p className="text-gray-500">Pedido #{payment.orderId?.slice(0, 8) || payment.id?.slice(0, 8)}</p>
+                  {(() => { const url = cfg.redirect_url; if (url) { setTimeout(() => window.location.href = url, 3000); return <p className="text-sm text-gray-400 mt-4">Redirecionando...</p>; } return null; })()}
                 </div>
               ) : timeLeft <= 0 ? (
                 <div className="py-10 px-6 text-center">
