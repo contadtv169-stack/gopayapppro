@@ -70,10 +70,12 @@ export default function Settings() {
 
   const saveGateway = async (gateway: string, creds: Record<string, string>) => {
     try {
-      const payload: any = { gateway, is_active: true };
+      const uid = JSON.parse(localStorage.getItem('gopay_user') || '{}').id;
+      if (!uid) { toast.error('Faça login novamente'); return; }
+      const payload: any = { user_id: uid, gateway, is_active: true };
       payload.encrypted_api_key = creds.clientId || creds.apiKey || '';
       payload.encrypted_secret = creds.clientSecret || creds.secret || '';
-      await supabase.from('gateway_credentials').upsert(payload);
+      await supabase.from('gateway_credentials').upsert(payload, { onConflict: 'user_id,gateway' });
       toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo!`);
     } catch (err: any) { toast.error(err.message); }
   };
