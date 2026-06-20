@@ -78,6 +78,15 @@ export async function createCheckoutOrder(params: {
   const pixBrCode = buildPixBRCode(params.amount, orderId, pixKey, 'GoPay', 'BRASILIA');
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixBrCode)}`;
 
+  // Check for active gateway credentials
+  let gateway = 'gopay';
+  try {
+    const { data: gwCreds } = await supabase.from('gateway_credentials').select('*').eq('user_id', params.seller_id).eq('is_active', true).maybeSingle();
+    if (gwCreds) {
+      gateway = gwCreds.gateway;
+    }
+  } catch {}
+
   const order = {
     id: orderId,
     user_id: params.seller_id,
@@ -91,7 +100,7 @@ export async function createCheckoutOrder(params: {
     net_amount: params.amount - 7,
     status: 'pending',
     payment_method: 'pix',
-    gateway: 'gopay',
+    gateway,
     pix_code: pixBrCode,
     pix_qr: qrUrl,
     expires_at: new Date(Date.now() + 1200 * 1000).toISOString(),

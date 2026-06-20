@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, User, Loader2 } from 'lucide-react';
+import { getJuliaReply } from '../services/groqService';
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const JULIA_AVATAR = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJkr-rqY4NQ35f4kh4_0WLwfBYV8OlnMTJzQ&s';
 
 const SYSTEM_PROMPT = `Você é a Julia, assistente virtual do GoPay, uma plataforma de checkout e pagamentos. 
@@ -49,30 +48,12 @@ export function AIChat({ context = 'general', onSuggestion }: { context?: string
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
-
     try {
-      const res = await fetch(GROQ_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
-          messages: [
-            { role: 'system', content: `${SYSTEM_PROMPT}\nContexto atual: ${context}` },
-            ...messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content },
-          ],
-          temperature: 0.7,
-          max_tokens: 1024,
-        }),
-      });
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || 'Desculpe, não consegui processar. Tente novamente!';
+      const reply = await getJuliaReply(
+        [...messages.slice(-6).map(m => ({ role: m.role, content: m.content })), { role: 'user', content }],
+        `${SYSTEM_PROMPT}\nContexto atual: ${context}`
+      );
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '❌ Erro de conexão. Tente novamente!' }]);
     } finally {
       setLoading(false);
     }

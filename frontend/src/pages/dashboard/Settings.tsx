@@ -70,7 +70,10 @@ export default function Settings() {
 
   const saveGateway = async (gateway: string, creds: Record<string, string>) => {
     try {
-      await supabase.from('gateway_credentials').upsert({ gateway, encrypted_api_key: creds.apiKey || '', encrypted_secret: creds.secret || creds.clientSecret || '', is_active: true });
+      const payload: any = { gateway, is_active: true };
+      payload.encrypted_api_key = creds.clientId || creds.apiKey || '';
+      payload.encrypted_secret = creds.clientSecret || creds.secret || '';
+      await supabase.from('gateway_credentials').upsert(payload);
       toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo!`);
     } catch (err: any) { toast.error(err.message); }
   };
