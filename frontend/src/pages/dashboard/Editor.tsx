@@ -488,10 +488,20 @@ export default function Editor() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold flex items-center gap-2"><Layout className="w-5 h-5 text-go-500" /> Landing Page</h2>
-                    <button onClick={() => {
-                      const newSection = { id: Date.now().toString(), type: 'hero', title: 'Nova Seção', subtitle: '', content: '', image_url: '', bg_color: '#ffffff', text_color: '#111827', button_text: 'Comprar agora', button_url: '', button_color: '#22c55e', enabled: true };
-                      setConfig({ ...config, landing_sections: [...config.landing_sections, newSection] });
-                    }} className="btn-primary text-sm !py-2 flex items-center gap-1"><Plus className="w-4 h-4" /> Adicionar Seção</button>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        const newSection = { id: Date.now().toString(), type: 'hero', title: 'Nova Seção', subtitle: '', content: '', image_url: '', bg_color: '#ffffff', text_color: '#111827', button_text: 'Comprar agora', button_url: '', button_color: '#22c55e', enabled: true };
+                        setConfig({ ...config, landing_sections: [...config.landing_sections, newSection] });
+                      }} className="btn-primary text-sm !py-2 flex items-center gap-1"><Plus className="w-4 h-4" /> Adicionar Seção</button>
+                      <button onClick={() => {
+                        const template = [
+                          { id: Date.now().toString() + '_1', type: 'hero', title: 'Transforme seu Futuro Agora', subtitle: 'A oportunidade que você esperava', content: 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore.', image_url: 'https://i.ibb.co/KzQNWdKD/Chat-GPT-Image-21-de-jun-de-2026-12-46-34.png', bg_color: '#0f172a', text_color: '#ffffff', button_text: 'Quero Agora', button_url: '', button_color: '#22c55e', enabled: true },
+                          { id: Date.now().toString() + '_2', type: 'features', title: 'Por que escolher?', subtitle: 'Recursos exclusivos', content: 'Qualidade, inovação e resultado comprovado.', image_url: '', bg_color: '#ffffff', text_color: '#111827', button_text: '', button_url: '', button_color: '#22c55e', enabled: true },
+                          { id: Date.now().toString() + '_3', type: 'cta', title: 'Não perca essa chance!', subtitle: 'Oferta por tempo limitado', content: 'Garanta seu acesso agora com condições especiais.', image_url: '', bg_color: '#22c55e', text_color: '#ffffff', button_text: 'Garantir Oferta', button_url: '', button_color: '#ffffff', enabled: true },
+                        ];
+                        setConfig({ ...config, landing_sections: template });
+                      }} className="btn-secondary text-sm !py-2 flex items-center gap-1">Template Full Screen</button>
+                    </div>
                   </div>
 
                   {config.landing_sections.length === 0 ? (

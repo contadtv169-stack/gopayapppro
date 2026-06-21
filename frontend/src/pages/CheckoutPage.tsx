@@ -174,6 +174,58 @@ export default function CheckoutPage() {
             )
           )}
 
+          {/* Landing page sections - full screen */}
+          {product && !payment && cfg.landing_sections?.length > 0 && !quizDone && cfg.landing_sections.filter((s: any) => s.enabled !== false).map((section: any, idx: number) => (
+            <div key={section.id || idx} className="w-full" style={{
+              backgroundColor: section.bg_color || '#ffffff', color: section.text_color || '#111827',
+              minHeight: section.type === 'hero' ? '100vh' : 'auto',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div className={`w-full ${section.type === 'hero' ? 'min-h-screen relative flex items-center justify-center' : 'py-16 px-4 max-w-4xl mx-auto'}`}>
+                {section.type === 'hero' && section.image_url ? (
+                  <div className="absolute inset-0">
+                    <img src={section.image_url} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50" />
+                  </div>
+                ) : null}
+                <div className={`relative z-10 ${section.type === 'hero' ? 'text-center px-6 py-20 max-w-2xl mx-auto' : ''}`}>
+                  {section.image_url && section.type !== 'hero' && (
+                    <img src={section.image_url} alt="" className="w-full max-h-64 object-cover rounded-2xl mb-6 shadow-lg" />
+                  )}
+                  {section.title && (
+                    <h2 className={`font-bold mb-3 ${section.type === 'hero' ? 'text-4xl sm:text-5xl lg:text-6xl leading-tight' : section.type === 'features' ? 'text-2xl text-center' : 'text-2xl'}`}
+                      style={{ color: section.text_color || '#111827' }}>{section.title}</h2>
+                  )}
+                  {section.subtitle && (
+                    <p className={`mb-4 ${section.type === 'hero' ? 'text-lg sm:text-xl opacity-80' : 'text-base opacity-70'}`}
+                      style={{ color: section.text_color || '#111827' }}>{section.subtitle}</p>
+                  )}
+                  {section.content && (
+                    <p className="text-sm opacity-70 mb-6 max-w-xl mx-auto" style={{ color: section.text_color || '#111827' }}>{section.content}</p>
+                  )}
+                  {section.type === 'features' && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 text-center">
+                          <div className="w-12 h-12 rounded-xl bg-white/20 mx-auto mb-3 flex items-center justify-center text-xl">⭐</div>
+                          <h4 className="font-semibold mb-2">Recurso {i}</h4>
+                          <p className="text-sm opacity-70">Descrição do recurso incrível que vai transformar seus resultados.</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {section.button_text && (
+                    <button onClick={() => { setQuizDone(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-transform"
+                      style={{ backgroundColor: section.button_color || '#22c55e', color: section.button_text_color || '#ffffff' }}>
+                      {section.button_text}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
           {/* Quiz gate - shows before product when quiz is enabled */}
           {product && !payment && cfg.quiz_enabled && cfg.quiz_questions?.length > 0 && !quizDone && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
