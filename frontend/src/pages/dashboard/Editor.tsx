@@ -12,7 +12,7 @@ import PhotoEditorPro from '../../components/PhotoEditorPro';
 import { getProducts } from '../../services/supabaseData';
 import { supabase } from '../../services/supabase';
 
-type Tab = 'banner' | 'logo' | 'video' | 'quiz' | 'gallery' | 'reviews' | 'colors' | 'photoshop' | 'advanced';
+type Tab = 'banner' | 'logo' | 'video' | 'quiz' | 'gallery' | 'reviews' | 'colors' | 'photoshop' | 'landing' | 'advanced';
 
 const tabs: { id: Tab; label: string; icon: any }[] = [
   { id: 'banner', label: 'Banner', icon: Image },
@@ -23,6 +23,7 @@ const tabs: { id: Tab; label: string; icon: any }[] = [
   { id: 'reviews', label: 'Avaliações', icon: Star },
   { id: 'colors', label: 'Cores', icon: Palette },
   { id: 'photoshop', label: 'Photoshop', icon: Image },
+  { id: 'landing', label: 'Landing Page', icon: Layout },
   { id: 'advanced', label: 'Avançado', icon: Eye },
 ];
 
@@ -82,6 +83,7 @@ export default function Editor() {
     custom_css: '',
     custom_js: '',
     theme: 'default',
+    landing_sections: [] as any[],
   });
 
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
@@ -476,6 +478,99 @@ export default function Editor() {
                       <div className="flex items-center gap-1">🗑️ Remover fundo automaticamente</div>
                       <div className="flex items-center gap-1">💡 Sugestão de filtro por IA</div>
                       <div className="flex items-center gap-1">📝 Gerar prompt para DALL-E/Midjourney</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Landing Page tab */}
+              {activeTab === 'landing' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold flex items-center gap-2"><Layout className="w-5 h-5 text-go-500" /> Landing Page</h2>
+                    <button onClick={() => {
+                      const newSection = { id: Date.now().toString(), type: 'hero', title: 'Nova Seção', subtitle: '', content: '', image_url: '', bg_color: '#ffffff', text_color: '#111827', button_text: 'Comprar agora', button_url: '', button_color: '#22c55e', enabled: true };
+                      setConfig({ ...config, landing_sections: [...config.landing_sections, newSection] });
+                    }} className="btn-primary text-sm !py-2 flex items-center gap-1"><Plus className="w-4 h-4" /> Adicionar Seção</button>
+                  </div>
+
+                  {config.landing_sections.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed">
+                      <Layout className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400">Nenhuma seção ainda. Clique em "Adicionar Seção" para construir sua landing page.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {config.landing_sections.map((section: any, idx: number) => (
+                        <div key={section.id} className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => {
+                                const items = [...config.landing_sections];
+                                if (idx > 0) { [items[idx], items[idx - 1]] = [items[idx - 1], items[idx]]; setConfig({ ...config, landing_sections: items }); }
+                              }} className="p-1 hover:bg-gray-100 rounded" title="Mover para cima">↑</button>
+                              <button onClick={() => {
+                                const items = [...config.landing_sections];
+                                if (idx < items.length - 1) { [items[idx], items[idx + 1]] = [items[idx + 1], items[idx]]; setConfig({ ...config, landing_sections: items }); }
+                              }} className="p-1 hover:bg-gray-100 rounded" title="Mover para baixo">↓</button>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${section.type === 'hero' ? 'bg-purple-100 text-purple-700' : section.type === 'features' ? 'bg-blue-100 text-blue-700' : section.type === 'cta' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                {section.type?.charAt(0).toUpperCase() + section.type?.slice(1)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <select value={section.type} onChange={e => {
+                                const items = [...config.landing_sections];
+                                items[idx] = { ...items[idx], type: e.target.value };
+                                setConfig({ ...config, landing_sections: items });
+                              }} className="text-xs border border-gray-200 rounded-lg px-2 py-1">
+                                <option value="hero">Hero</option>
+                                <option value="features">Recursos</option>
+                                <option value="cta">CTA</option>
+                                <option value="text">Texto</option>
+                                <option value="image">Imagem</option>
+                                <option value="video">Vídeo</option>
+                                <option value="testimonial">Depoimento</option>
+                                <option value="faq">FAQ</option>
+                                <option value="pricing">Preços</option>
+                              </select>
+                              <button onClick={() => {
+                                const items = config.landing_sections.filter((_: any, i: number) => i !== idx);
+                                setConfig({ ...config, landing_sections: items });
+                              }} className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div><label className="text-xs text-gray-500">Título</label><input value={section.title} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], title: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="input-field text-sm" placeholder="Título da seção" /></div>
+                            <div><label className="text-xs text-gray-500">Subtítulo</label><input value={section.subtitle || ''} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], subtitle: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="input-field text-sm" placeholder="Subtítulo" /></div>
+                          </div>
+                          <div><label className="text-xs text-gray-500">Conteúdo / Descrição</label><textarea value={section.content || ''} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], content: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="input-field text-sm" rows={2} placeholder="Conteúdo da seção" /></div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div><label className="text-xs text-gray-500">Imagem URL</label><input value={section.image_url || ''} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], image_url: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="input-field text-sm" placeholder="https://..." /></div>
+                            <div><label className="text-xs text-gray-500">Texto Botão</label><input value={section.button_text || ''} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], button_text: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="input-field text-sm" placeholder="Comprar" /></div>
+                            <div><label className="text-xs text-gray-500">Link Botão</label><input value={section.button_url || ''} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], button_url: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="input-field text-sm" placeholder="https://..." /></div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div><label className="text-xs text-gray-500">Cor Fundo</label><input type="color" value={section.bg_color || '#ffffff'} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], bg_color: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="w-8 h-8 rounded cursor-pointer border block" /></div>
+                            <div><label className="text-xs text-gray-500">Cor Texto</label><input type="color" value={section.text_color || '#111827'} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], text_color: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="w-8 h-8 rounded cursor-pointer border block" /></div>
+                            <div><label className="text-xs text-gray-500">Cor Botão</label><input type="color" value={section.button_color || '#22c55e'} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], button_color: e.target.value }; setConfig({ ...config, landing_sections: items }); }} className="w-8 h-8 rounded cursor-pointer border block" /></div>
+                          </div>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={section.enabled !== false} onChange={e => { const items = [...config.landing_sections]; items[idx] = { ...items[idx], enabled: e.target.checked }; setConfig({ ...config, landing_sections: items }); }} />
+                            Seção ativa
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Landing page preview link */}
+                  <div className="p-4 bg-gradient-to-r from-go-500/10 to-purple-500/10 rounded-xl border border-go-200">
+                    <h3 className="text-sm font-semibold text-go-700 mb-2">Preview da Landing Page</h3>
+                    <p className="text-xs text-gray-600">As seções serão exibidas na página de checkout do seu produto, antes do formulário de compra.</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
+                      {config.landing_sections.filter((s: any) => s.enabled !== false).map((s: any) => (
+                        <span key={s.id} className="px-2 py-1 bg-white rounded-lg border">{s.type} - {s.title.slice(0, 20)}</span>
+                      ))}
                     </div>
                   </div>
                 </div>

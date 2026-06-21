@@ -28,6 +28,11 @@ export default function CheckoutPage() {
   const [selectedGateway, setSelectedGateway] = useState('gopay');
   const [loadingGateways, setLoadingGateways] = useState(true);
 
+  // Quiz state
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+  const [quizDone, setQuizDone] = useState(false);
+
   const cfg = customization || {};
 
   useEffect(() => {
@@ -169,8 +174,45 @@ export default function CheckoutPage() {
             )
           )}
 
-          {/* Product page - before payment */}
-          {product && !payment && (
+          {/* Quiz gate - shows before product when quiz is enabled */}
+          {product && !payment && cfg.quiz_enabled && cfg.quiz_questions?.length > 0 && !quizDone && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+              <h2 className="text-xl font-bold mb-1" style={{ color: tc }}>{cfg.quiz_title || 'Antes de continuar...'}</h2>
+              <p className="text-sm text-gray-500 mb-6">Responda algumas perguntas</p>
+              {cfg.quiz_questions.map((q: any, idx: number) => (
+                <div key={q.id || idx} className={`mb-5 ${quizStep === idx ? '' : 'hidden'}`}>
+                  <p className="font-medium mb-3 text-sm" style={{ color: tc }}>{idx + 1}. {q.question}</p>
+                  <div className="space-y-2">
+                    {(q.options || []).map((opt: string, oi: number) => (
+                      <label key={oi} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${quizAnswers[q.id || idx] === opt ? 'border-go-500 bg-go-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                        <input type="radio" name={`quiz_${idx}`} value={opt} checked={quizAnswers[q.id || idx] === opt} onChange={() => setQuizAnswers({ ...quizAnswers, [q.id || idx]: opt })} className="hidden" />
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${quizAnswers[q.id || idx] === opt ? 'border-go-500' : 'border-gray-300'}`}>
+                          {quizAnswers[q.id || idx] === opt && <div className="w-2.5 h-2.5 rounded-full bg-go-500" />}
+                        </div>
+                        <span className="text-sm">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-4">
+                    <button onClick={() => setQuizStep(Math.max(0, idx - 1))} className={`text-sm text-gray-400 hover:text-gray-600 ${idx === 0 ? 'invisible' : ''}`}>Voltar</button>
+                    {idx < cfg.quiz_questions.length - 1 ? (
+                      <button onClick={() => { if (quizAnswers[q.id || idx]) setQuizStep(idx + 1); else toast.error('Selecione uma opção'); }} className="btn-primary text-sm !py-2">Próximo</button>
+                    ) : (
+                      <button onClick={() => { if (quizAnswers[q.id || idx]) setQuizDone(true); else toast.error('Selecione uma opção'); toast.success('Quiz concluído! Agora finalize sua compra.'); }} className="btn-primary text-sm !py-2">Ver produto</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center gap-1 text-xs text-gray-400 justify-center mt-2">
+                {cfg.quiz_questions.map((_: any, i: number) => (
+                  <div key={i} className={`w-2 h-2 rounded-full ${i === quizStep ? 'bg-go-500' : i < quizStep || quizDone ? 'bg-gray-300' : 'bg-gray-200'}`} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Product page - before payment (only if quiz is done or not enabled) */}
+          {product && !payment && (!cfg.quiz_enabled || !cfg.quiz_questions?.length || quizDone) && (
             <>
               {/* Only show logo + branding if no banner */}
               {!cfg.banner_type || (cfg.banner_type === 'image' && !cfg.banner_url) ? (
