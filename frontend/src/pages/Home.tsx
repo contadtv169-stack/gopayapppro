@@ -50,32 +50,32 @@ export default function Home() {
 
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
-          <img src="https://i.ibb.co/KzQNWdKD/Chat-GPT-Image-21-de-jun-de-2026-12-46-34.png" alt="Hero" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          <img src="https://i.ibb.co/KzQNWdKD/Chat-GPT-Image-21-de-jun-de-2026-12-46-34.png" alt="Hero" className="w-full h-full object-cover object-center" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-black/80 md:bg-gradient-to-r md:from-black/70 md:via-black/40 md:to-transparent" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 w-full">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium mb-6 border border-white/20">
-              <Zap className="w-4 h-4" /> Plataforma completa de pagamentos
+          <div className="max-w-2xl mx-auto md:mx-0 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6 border border-white/20">
+              <Zap className="w-3 h-3 md:w-4 md:h-4" /> Plataforma completa de pagamentos
             </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-4 md:mb-6">
               Receba pagamentos via <br />
-              <span className="bg-gradient-to-r from-go-400 to-emerald-300 bg-clip-text text-transparent">Pix e cartão</span> em minutos
+              <span className="bg-gradient-to-r from-go-400 to-emerald-300 bg-clip-text text-transparent">Pix e cartão</span>
             </h1>
-            <p className="text-xl text-white/80 max-w-xl mb-10">
+            <p className="text-base sm:text-lg md:text-xl text-white/80 max-w-xl mx-auto md:mx-0 mb-8 md:mb-10">
               Crie links de pagamento e páginas de checkout profissionais em segundos. Compartilhe no WhatsApp, redes sociais ou site.
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Link to="/register" className="inline-flex items-center gap-2 bg-go-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-go-600 transition-all shadow-xl shadow-go-500/30">
-                Criar Conta Grátis <ArrowRight className="w-5 h-5" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
+              <Link to="/register" className="inline-flex items-center justify-center gap-2 bg-go-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-go-600 transition-all shadow-xl shadow-go-500/30">
+                Criar Conta Grátis <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
               </Link>
-              <a href="#beneficios" className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border border-white/20 hover:bg-white/20 transition-all">
+              <a href="#beneficios" className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg border border-white/20 hover:bg-white/20 transition-all">
                 Ver Benefícios
               </a>
             </div>
           </div>
         </div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce hidden md:block">
           <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
             <div className="w-1 h-2 bg-white/50 rounded-full" />
           </div>
