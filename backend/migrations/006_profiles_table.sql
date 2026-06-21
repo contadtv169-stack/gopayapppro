@@ -2,12 +2,15 @@
 -- Migration 006: Profiles table for public access + trigger
 -- Run this AFTER migrations 003, 004, 005
 
+-- Enable extension for uuid generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Step 1: Drop existing profiles table if it exists (from Supabase default template)
 DROP TABLE IF EXISTS profiles CASCADE;
 
 -- Step 2: Create profiles table with our schema
 CREATE TABLE profiles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL UNIQUE,
   name VARCHAR(255),
   email VARCHAR(255),
