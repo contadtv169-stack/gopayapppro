@@ -126,26 +126,45 @@ export default function CheckoutPage() {
         {!payment && (
           <>
             {cfg.banner_type === 'image' && cfg.banner_url ? (
-              <div className="w-full relative">
-                <img src={cfg.banner_url} alt="Banner" className="w-full h-72 sm:h-96 object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                <div className="absolute bottom-4 left-4 sm:left-6 right-4">
-                  <h1 className="text-white text-2xl sm:text-3xl font-bold drop-shadow-lg">{product?.name}</h1>
-                  <p className="text-white/80 text-sm drop-shadow">{product?.description?.slice(0, 80)}</p>
+              <div className="w-full relative min-h-[90vh] flex items-center justify-center">
+                <img src={cfg.banner_url} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/60" />
+                {/* Logo + GoPay on top */}
+                <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex items-center gap-2">
+                  {cfg.logo_url ? (
+                    <img src={cfg.logo_url} alt="Logo" className="max-h-10 object-contain" />
+                  ) : null}
+                  {!cfg.white_label && (
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium border border-white/20">
+                      <DollarSign className="w-4 h-4" /> GoPay
+                    </div>
+                  )}
+                </div>
+                <div className="relative z-10 text-center px-4 max-w-xl mx-auto">
+                  <h1 className="text-white text-3xl sm:text-4xl lg:text-5xl font-bold drop-shadow-lg mb-3">{product?.name}</h1>
+                  <p className="text-white/80 text-base sm:text-lg drop-shadow">{product?.description?.slice(0, 120)}</p>
                 </div>
               </div>
             ) : cfg.banner_type === 'color' && cfg.banner_color ? (
-              <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ backgroundColor: cfg.banner_color }}>
-                <div>
-                  <h1 className="text-white text-2xl sm:text-3xl font-bold">{product?.name}</h1>
-                  <p className="text-white/80 text-sm">{product?.description?.slice(0, 80)}</p>
+              <div className="w-full min-h-[70vh] flex items-center justify-center relative" style={{ backgroundColor: cfg.banner_color }}>
+                <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex items-center gap-2">
+                  {cfg.logo_url ? <img src={cfg.logo_url} alt="Logo" className="max-h-10 object-contain" /> : null}
+                  {!cfg.white_label && <div className="flex items-center gap-1.5 bg-black/10 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium"><DollarSign className="w-4 h-4" /> GoPay</div>}
+                </div>
+                <div className="text-center px-4">
+                  <h1 className="text-white text-3xl sm:text-4xl font-bold mb-2">{product?.name}</h1>
+                  <p className="text-white/80 text-base">{product?.description?.slice(0, 120)}</p>
                 </div>
               </div>
             ) : cfg.banner_type === 'gradient' ? (
-              <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ background: `linear-gradient(135deg, ${cfg.banner_gradient_start || '#10b981'}, ${cfg.banner_gradient_end || '#6366f1'})` }}>
-                <div>
-                  <h1 className="text-white text-2xl sm:text-3xl font-bold">{product?.name}</h1>
-                  <p className="text-white/80 text-sm">{product?.description?.slice(0, 80)}</p>
+              <div className="w-full min-h-[70vh] flex items-center justify-center relative" style={{ background: `linear-gradient(135deg, ${cfg.banner_gradient_start || '#10b981'}, ${cfg.banner_gradient_end || '#6366f1'})` }}>
+                <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex items-center gap-2">
+                  {cfg.logo_url ? <img src={cfg.logo_url} alt="Logo" className="max-h-10 object-contain" /> : null}
+                  {!cfg.white_label && <div className="flex items-center gap-1.5 bg-black/10 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium"><DollarSign className="w-4 h-4" /> GoPay</div>}
+                </div>
+                <div className="text-center px-4">
+                  <h1 className="text-white text-3xl sm:text-4xl font-bold mb-2">{product?.name}</h1>
+                  <p className="text-white/80 text-base">{product?.description?.slice(0, 120)}</p>
                 </div>
               </div>
             ) : (
@@ -166,14 +185,6 @@ export default function CheckoutPage() {
         )}
 
         <div className="px-4 py-6">
-          {cfg.logo_url && !payment && cfg.banner_type !== 'image' && cfg.banner_type !== 'color' && cfg.banner_type !== 'gradient' ? null : (
-            cfg.logo_url && !payment && (
-              <div className={`flex justify-${cfg.logo_position || 'center'} mb-4`}>
-                <img src={cfg.logo_url} alt="Logo" className="max-h-10 object-contain" />
-              </div>
-            )
-          )}
-
           {/* Landing page sections - full screen */}
           {product && !payment && cfg.landing_sections?.length > 0 && !quizDone && cfg.landing_sections.filter((s: any) => s.enabled !== false).map((section: any, idx: number) => (
             <div key={section.id || idx} className="w-full" style={{

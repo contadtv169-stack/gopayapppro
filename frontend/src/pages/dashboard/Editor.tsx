@@ -631,40 +631,51 @@ export default function Editor() {
             </div>
             <div className="flex-1 overflow-y-auto bg-white">
               <div style={{ backgroundColor: config.background_color, color: config.text_color }}>
-                {/* Full-width hero banner - bigger */}
+                {/* Full-height hero banner with logo + GoPay on top */}
                 {config.banner_type === 'image' && config.banner_url && (
-                  <div className="w-full relative">
-                    <img src={config.banner_url} alt="Banner" className="w-full h-72 sm:h-96 object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <h1 className="text-white text-2xl sm:text-3xl font-bold drop-shadow-lg">{selectedProductData?.name || 'Selecione um produto'}</h1>
-                      <p className="text-white/80 text-sm drop-shadow">{selectedProductData?.description?.slice(0, 80) || ''}</p>
+                  <div className="w-full relative min-h-[80vh] flex items-center justify-center">
+                    <img src={config.banner_url} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/60" />
+                    <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex items-center gap-2">
+                      {config.logo_url ? <img src={config.logo_url} alt="Logo" className="max-h-10 object-contain" /> : null}
+                      {!config.white_label && (
+                        <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium border border-white/20">
+                          <DollarSign className="w-4 h-4" /> GoPay
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative z-10 text-center px-4">
+                      <h1 className="text-white text-3xl sm:text-4xl font-bold drop-shadow-lg mb-2">{selectedProductData?.name || 'Selecione um produto'}</h1>
+                      <p className="text-white/80 text-base sm:text-lg drop-shadow">{selectedProductData?.description?.slice(0, 120) || ''}</p>
                     </div>
                   </div>
                 )}
                 {config.banner_type === 'color' && config.banner_color && (
-                  <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ backgroundColor: config.banner_color }}>
-                    <div>
-                      <h1 className="text-white text-2xl sm:text-3xl font-bold">{selectedProductData?.name || 'Selecione um produto'}</h1>
-                      <p className="text-white/80 text-sm">{selectedProductData?.description?.slice(0, 80) || ''}</p>
+                  <div className="w-full min-h-[60vh] flex items-center justify-center relative" style={{ backgroundColor: config.banner_color }}>
+                    <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex items-center gap-2">
+                      {config.logo_url ? <img src={config.logo_url} alt="Logo" className="max-h-10 object-contain" /> : null}
+                      {!config.white_label && <div className="flex items-center gap-1.5 bg-black/10 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium"><DollarSign className="w-4 h-4" /> GoPay</div>}
+                    </div>
+                    <div className="text-center px-4">
+                      <h1 className="text-white text-3xl font-bold mb-2">{selectedProductData?.name || 'Selecione um produto'}</h1>
+                      <p className="text-white/80 text-base">{selectedProductData?.description?.slice(0, 120) || ''}</p>
                     </div>
                   </div>
                 )}
                 {config.banner_type === 'gradient' && (
-                  <div className="w-full h-56 sm:h-72 flex items-end p-6" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start || '#10b981'}, ${config.banner_gradient_end || '#6366f1'})` }}>
-                    <div>
-                      <h1 className="text-white text-2xl sm:text-3xl font-bold">{selectedProductData?.name || 'Selecione um produto'}</h1>
-                      <p className="text-white/80 text-sm">{selectedProductData?.description?.slice(0, 80) || ''}</p>
+                  <div className="w-full min-h-[60vh] flex items-center justify-center relative" style={{ background: `linear-gradient(135deg, ${config.banner_gradient_start || '#10b981'}, ${config.banner_gradient_end || '#6366f1'})` }}>
+                    <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 flex items-center gap-2">
+                      {config.logo_url ? <img src={config.logo_url} alt="Logo" className="max-h-10 object-contain" /> : null}
+                      {!config.white_label && <div className="flex items-center gap-1.5 bg-black/10 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium"><DollarSign className="w-4 h-4" /> GoPay</div>}
+                    </div>
+                    <div className="text-center px-4">
+                      <h1 className="text-white text-3xl font-bold mb-2">{selectedProductData?.name || 'Selecione um produto'}</h1>
+                      <p className="text-white/80 text-base">{selectedProductData?.description?.slice(0, 120) || ''}</p>
                     </div>
                   </div>
                 )}
 
                 <div className="p-4 sm:p-6">
-                  {config.logo_url && (
-                    <div className={`flex justify-${config.logo_position} mb-4`}>
-                      <img src={config.logo_url} alt="Logo" className="max-h-10 object-contain" />
-                    </div>
-                  )}
 
                   {/* Product card */}
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5">
