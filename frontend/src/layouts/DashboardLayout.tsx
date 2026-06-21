@@ -18,6 +18,7 @@ const navItems = [
   { path: '/dashboard/orders', icon: ShoppingCart, label: 'Pedidos' },
   { path: '/dashboard/links', icon: LinkIcon, label: 'Links' },
   { path: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
+  { path: '/dashboard/facebook-ads', icon: MessageCircle, label: 'Facebook Ads' },
   { path: '/dashboard/camfacial', icon: Camera, label: 'CamFacial' },
   { path: '/dashboard/placas', icon: Trophy, label: 'Placas' },
   { path: '/dashboard/settings', icon: Settings, label: 'Configurações' },

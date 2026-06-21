@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Palette, Image, Type, Video, Layout, Star, HelpCircle, 
   Eye, EyeOff, Save, Upload, Plus, Trash2,
   ChevronDown, ChevronUp, Monitor, Smartphone, 
-  X, Check, Play, Link, Loader2, DollarSign, Package,
-  Sun, Contrast, Crop, RotateCw, Undo2
+  X, Check, Play, Link, Loader2, DollarSign, Package, Crop
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AIChat } from '../../components/AIChat';
+import PhotoEditorPro from '../../components/PhotoEditorPro';
 import { getProducts } from '../../services/supabaseData';
 import { supabase } from '../../services/supabase';
 
@@ -87,28 +87,6 @@ export default function Editor() {
 
   // Photo editor state
   const [photoEditor, setPhotoEditor] = useState<{ open: boolean; url: string; idx?: number }>({ open: false, url: '' });
-  const [photoBrightness, setPhotoBrightness] = useState(100);
-  const [photoContrast, setPhotoContrast] = useState(100);
-  const [photoGrayscale, setPhotoGrayscale] = useState(0);
-  const [photoSepia, setPhotoSepia] = useState(0);
-  const photoCanvasRef = useRef<HTMLCanvasElement>(null);
-  const photoSourceRef = useRef<HTMLImageElement | null>(null);
-
-  const renderPhotoFilters = useCallback(() => {
-    const canvas = photoCanvasRef.current;
-    const img = photoSourceRef.current;
-    if (!canvas || !img) return;
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.filter = `brightness(${photoBrightness}%) contrast(${photoContrast}%) grayscale(${photoGrayscale}%) sepia(${photoSepia}%)`;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  }, [photoBrightness, photoContrast, photoGrayscale, photoSepia]);
-
-  useEffect(() => {
-    renderPhotoFilters();
-  }, [renderPhotoFilters]);
 
   useEffect(() => {
     getProducts().then(setProducts).catch(() => {});
@@ -166,22 +144,15 @@ export default function Editor() {
 
   const openPhotoEditor = (url: string, idx?: number) => {
     setPhotoEditor({ open: true, url, idx });
-    setPhotoBrightness(100);
-    setPhotoContrast(100);
-    setPhotoGrayscale(0);
-    setPhotoSepia(0);
   };
 
-  const applyPhotoEdit = () => {
-    const canvas = photoCanvasRef.current;
-    if (!canvas) return;
-    const edited = canvas.toDataURL('image/jpeg', 0.9);
+  const saveEditedPhoto = (dataUrl: string) => {
     if (photoEditor.idx !== undefined) {
       const imgs = [...config.gallery_images];
-      imgs[photoEditor.idx] = edited;
+      imgs[photoEditor.idx] = dataUrl;
       setConfig({ ...config, gallery_images: imgs });
     } else {
-      addGalleryImage(edited);
+      setConfig({ ...config, banner_url: dataUrl });
     }
     setPhotoEditor({ open: false, url: '' });
     toast.success('Imagem editada!');
@@ -674,33 +645,12 @@ export default function Editor() {
         </div>
       </div>
 
-      {/* Photo Editor Modal */}
       {photoEditor.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setPhotoEditor({ open: false, url: '' })}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Editar Imagem</h2>
-            <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden border bg-gray-100">
-                <canvas ref={photoCanvasRef} className="w-full max-h-64 object-contain" />
-                <img src={photoEditor.url} alt="Editar" className="hidden"
-                  onLoad={(e) => {
-                    photoSourceRef.current = e.currentTarget;
-                    renderPhotoFilters();
-                  }} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Sun className="w-3 h-3" /> Brilho {photoBrightness}%</label><input type="range" min="0" max="200" value={photoBrightness} onChange={e => setPhotoBrightness(Number(e.target.value))} className="w-full" /></div>
-                <div><label className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Contrast className="w-3 h-3" /> Contraste {photoContrast}%</label><input type="range" min="0" max="200" value={photoContrast} onChange={e => setPhotoContrast(Number(e.target.value))} className="w-full" /></div>
-                <div><label className="text-xs text-gray-500 mb-1">Preto e Branco</label><input type="range" min="0" max="100" value={photoGrayscale} onChange={e => setPhotoGrayscale(Number(e.target.value))} className="w-full" /></div>
-                <div><label className="text-xs text-gray-500 mb-1">Sépia</label><input type="range" min="0" max="100" value={photoSepia} onChange={e => setPhotoSepia(Number(e.target.value))} className="w-full" /></div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setPhotoBrightness(100); setPhotoContrast(100); setPhotoGrayscale(0); setPhotoSepia(0); }} className="btn-secondary flex-1 flex items-center justify-center gap-2"><Undo2 className="w-4 h-4" /> Resetar</button>
-                <button onClick={applyPhotoEdit} className="btn-primary flex-1"><Check className="w-4 h-4 inline mr-1" /> Aplicar</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PhotoEditorPro
+          imageUrl={photoEditor.url}
+          onSave={saveEditedPhoto}
+          onClose={() => setPhotoEditor({ open: false, url: '' })}
+        />
       )}
       <AIChat context="editor" />
     </div>
