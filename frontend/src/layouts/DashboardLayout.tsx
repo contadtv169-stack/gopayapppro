@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, ShoppingCart, Link as LinkIcon, Settings, LogOut, 
   Bell, Menu, X, ChevronDown, User, PenSquare, MessageCircle, Download, 
-  Home, Smartphone, Camera, Trophy
+  Home, Smartphone, Camera, Trophy, TrendingUp, PiggyBank
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { logout as authLogout } from '../services/auth';
@@ -19,6 +19,8 @@ const navItems = [
   { path: '/dashboard/links', icon: LinkIcon, label: 'Links' },
   { path: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
   { path: '/dashboard/facebook-ads', icon: MessageCircle, label: 'Facebook Ads' },
+  { path: '/dashboard/viral-products', icon: TrendingUp, label: 'Prod. Virais' },
+  { path: '/dashboard/wallet', icon: PiggyBank, label: 'Carteira' },
   { path: '/dashboard/camfacial', icon: Camera, label: 'CamFacial' },
   { path: '/dashboard/placas', icon: Trophy, label: 'Placas' },
   { path: '/dashboard/settings', icon: Settings, label: 'Configurações' },

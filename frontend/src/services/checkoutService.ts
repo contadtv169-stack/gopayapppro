@@ -128,23 +128,27 @@ export async function createCheckoutOrder(params: {
   customer_phone?: string;
   customer_document?: string;
   amount: number;
+  preferred_gateway?: string;
 }) {
   const orderId = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Date.now().toString(36));
 
-  // Try gateway first, fall back to local Pix
+  // Try selected gateway first, fall back to local Pix
   let pixCode = '';
   let qrUrl = '';
-  let gateway = 'gopay';
+  let gateway = params.preferred_gateway || 'gopay';
   let gatewayError = '';
 
   try {
-    const { data: gwCreds } = await supabase.from('gateway_credentials').select('*').eq('user_id', params.seller_id).eq('is_active', true).maybeSingle();
-    if (gwCreds) {
-      gateway = gwCreds.gateway;
-      const result = await processWithGateway(gateway, gwCreds, { ...params, orderId });
-      if (result) {
-        pixCode = result.pixCode;
-        qrUrl = result.qrUrl;
+    if (gateway !== 'gopay') {
+      const { data: gwCreds } = await supabase.from('gateway_credentials').select('*').eq('user_id', params.seller_id).eq('gateway', gateway).eq('is_active', true).maybeSingle();
+      if (gwCreds) {
+        const result = await processWithGateway(gateway, gwCreds, { ...params, orderId });
+        if (result) {
+          pixCode = result.pixCode;
+          qrUrl = result.qrUrl;
+        }
+      } else {
+        throw new Error('Gateway não encontrado');
       }
     }
   } catch (err: any) {

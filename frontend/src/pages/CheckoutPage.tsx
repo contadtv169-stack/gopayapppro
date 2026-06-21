@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, Star, Play, Check } from 'lucide-react';
+import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, Star, Play, Check, CreditCard, Smartphone, Banknote, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { supabase } from '../services/supabase';
 import { getCheckoutProduct, getCheckoutCustomizations, createCheckoutOrder, getOrderStatus } from '../services/checkoutService';
+
+const GATEWAY_META: Record<string, { name: string; icon: string; color: string }> = {
+  kryptgateway: { name: 'KryptGateway', icon: '🔐', color: '#6366f1' },
+  abacatepay: { name: 'AbacatePay', icon: '🥑', color: '#22c55e' },
+  pixgo: { name: 'PixGo', icon: '💳', color: '#f59e0b' },
+};
 
 export default function CheckoutPage() {
   const { slug } = useParams();
@@ -17,6 +24,9 @@ export default function CheckoutPage() {
   const [timeLeft, setTimeLeft] = useState(1200);
   const [orderStatus, setOrderStatus] = useState('');
   const [error, setError] = useState('');
+  const [availableGateways, setAvailableGateways] = useState<any[]>([]);
+  const [selectedGateway, setSelectedGateway] = useState('gopay');
+  const [loadingGateways, setLoadingGateways] = useState(true);
 
   const cfg = customization || {};
 
@@ -29,6 +39,15 @@ export default function CheckoutPage() {
       const cust = await getCheckoutCustomizations(p.id);
       setCustomization(cust);
       setLoading(false);
+      // Load connected gateways for this seller
+      if (p?.user_id) {
+        const { data: gw } = await supabase.from('gateway_credentials').select('*').eq('user_id', p.user_id).eq('is_active', true);
+        if (gw && gw.length > 0) {
+          setAvailableGateways(gw);
+          setSelectedGateway(gw[0].gateway);
+        }
+      }
+      setLoadingGateways(false);
     })();
   }, [slug]);
 
@@ -67,6 +86,7 @@ export default function CheckoutPage() {
         customer_phone: customer.phone,
         customer_document: customer.document,
         amount: Number(product.price),
+        preferred_gateway: selectedGateway !== 'gopay' ? selectedGateway : undefined,
       });
       setPayment(order);
       setOrderStatus(order.status);
@@ -232,20 +252,42 @@ export default function CheckoutPage() {
                   <input className="input-field" placeholder="Telefone" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
                   <input className="input-field" placeholder="CPF" value={customer.document} onChange={e => setCustomer({...customer, document: e.target.value})} />
 
-                  {/* Payment method */}
-                  <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="w-6 h-6 text-green-600" />
+                  {/* Payment methods - gateway choices */}
+                  <div className="space-y-2 mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</p>
+                    {loadingGateways ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-400"><Loader2 className="w-4 h-4 animate-spin" /> Carregando meios de pagamento...</div>
+                    ) : availableGateways.length > 0 ? (
+                      availableGateways.map((gw: any) => {
+                        const meta = GATEWAY_META[gw.gateway] || { name: 'Gateway', icon: '🔗', color: '#6b7280' };
+                        return (
+                          <label key={gw.gateway} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedGateway === gw.gateway ? 'border-go-500 bg-go-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                            <input type="radio" name="gateway" value={gw.gateway} checked={selectedGateway === gw.gateway} onChange={() => setSelectedGateway(gw.gateway)} className="hidden" />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: meta.color + '20' }}><span>{meta.icon}</span></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium" style={{ color: tc }}>{meta.name}</p>
+                              <p className="text-xs text-gray-500">Pagamento via Pix processado por {meta.name}</p>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedGateway === gw.gateway ? 'border-go-500' : 'border-gray-300'}`}>
+                              {selectedGateway === gw.gateway && <div className="w-2.5 h-2.5 rounded-full bg-go-500" />}
+                            </div>
+                          </label>
+                        );
+                      })
+                    ) : null}
+                    {/* Always show GoPay Pix fallback */}
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedGateway === 'gopay' ? 'border-go-500 bg-go-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                      <input type="radio" name="gateway" value="gopay" checked={selectedGateway === 'gopay'} onChange={() => setSelectedGateway('gopay')} className="hidden" />
+                      <div className="w-10 h-10 bg-go-100 rounded-xl flex items-center justify-center"><DollarSign className="w-6 h-6 text-go-600" /></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium" style={{ color: tc }}>Pix GoPay</p>
+                        <p className="text-xs text-gray-500">Pagamento instantâneo via Pix</p>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: tc }}>Pix</p>
-                        <p className="text-xs text-gray-500">Pagamento instantâneo</p>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedGateway === 'gopay' ? 'border-go-500' : 'border-gray-300'}`}>
+                        {selectedGateway === 'gopay' && <div className="w-2.5 h-2.5 rounded-full bg-go-500" />}
                       </div>
-                      <div className="ml-auto w-5 h-5 rounded-full border-2 border-green-500 flex items-center justify-center">
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                      </div>
-                    </div>
+                    </label>
+                    <div className="flex items-center gap-2 text-xs text-gray-400 pt-1"><ShieldCheck className="w-3.5 h-3.5 text-go-500" /> Pagamento 100% seguro e processado</div>
                   </div>
 
                   {error && <p className="text-red-500 text-sm">{error}</p>}

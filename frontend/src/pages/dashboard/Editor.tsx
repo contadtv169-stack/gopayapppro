@@ -12,7 +12,7 @@ import PhotoEditorPro from '../../components/PhotoEditorPro';
 import { getProducts } from '../../services/supabaseData';
 import { supabase } from '../../services/supabase';
 
-type Tab = 'banner' | 'logo' | 'video' | 'quiz' | 'gallery' | 'reviews' | 'colors' | 'advanced';
+type Tab = 'banner' | 'logo' | 'video' | 'quiz' | 'gallery' | 'reviews' | 'colors' | 'photoshop' | 'advanced';
 
 const tabs: { id: Tab; label: string; icon: any }[] = [
   { id: 'banner', label: 'Banner', icon: Image },
@@ -22,6 +22,7 @@ const tabs: { id: Tab; label: string; icon: any }[] = [
   { id: 'gallery', label: 'Galeria', icon: Layout },
   { id: 'reviews', label: 'Avaliações', icon: Star },
   { id: 'colors', label: 'Cores', icon: Palette },
+  { id: 'photoshop', label: 'Photoshop', icon: Image },
   { id: 'advanced', label: 'Avançado', icon: Eye },
 ];
 
@@ -61,6 +62,7 @@ export default function Editor() {
     banner_gradient_start: '#22c55e',
     banner_gradient_end: '#6366f1',
     redirect_url: '',
+    affiliate_link: '',
     video_url: '',
     video_autoplay: false,
     video_loop: false,
@@ -432,6 +434,53 @@ export default function Editor() {
                 </div>
               )}
 
+              {/* Photoshop tab */}
+              {activeTab === 'photoshop' && (
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><Image className="w-5 h-5 text-go-500" /> Editor de Fotos Profissional</h2>
+                  <p className="text-sm text-gray-500">Edite suas imagens com ferramentas profissionais e IA. Ajuste brilho, contraste, filtros, corte, remoção de fundo e muito mais.</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {config.banner_url && (
+                      <div className="relative group rounded-xl overflow-hidden border">
+                        <img src={config.banner_url} alt="Banner" className="w-full h-32 object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button onClick={() => openPhotoEditor(config.banner_url)} className="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg">Editar Banner</button>
+                        </div>
+                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">Banner</div>
+                      </div>
+                    )}
+                    {config.gallery_images?.slice(0, 3).map((img: string, idx: number) => (
+                      <div key={idx} className="relative group rounded-xl overflow-hidden border">
+                        <img src={img} alt="" className="w-full h-32 object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button onClick={() => openPhotoEditor(img, idx)} className="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-medium shadow-lg">Editar</button>
+                        </div>
+                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">Galeria {idx + 1}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {!config.banner_url && config.gallery_images.length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed">
+                      <Image className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400">Adicione um banner ou imagens na galeria primeiro</p>
+                    </div>
+                  )}
+                  <div className="bg-gradient-to-r from-go-500/10 to-purple-500/10 rounded-xl p-4 border border-go-200">
+                    <h3 className="text-sm font-semibold text-go-700 mb-2">Ferramentas disponíveis</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
+                      <div className="flex items-center gap-1">🎨 Ajustes (brilho, contraste, saturação)</div>
+                      <div className="flex items-center gap-1">🌈 Filtros (vintage, cinema, HDR, etc.)</div>
+                      <div className="flex items-center gap-1">✂️ Corte com proporções</div>
+                      <div className="flex items-center gap-1">🔄 Rotação e espelhamento</div>
+                      <div className="flex items-center gap-1">🤖 Ajuste Inteligente com IA</div>
+                      <div className="flex items-center gap-1">🗑️ Remover fundo automaticamente</div>
+                      <div className="flex items-center gap-1">💡 Sugestão de filtro por IA</div>
+                      <div className="flex items-center gap-1">📝 Gerar prompt para DALL-E/Midjourney</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Colors tab */}
               {activeTab === 'colors' && (
                 <div className="space-y-6">
@@ -469,7 +518,12 @@ export default function Editor() {
                   </div>
                   <div><label className="text-sm text-gray-600 mb-1 block">CSS Personalizado</label><textarea className="input-field font-mono text-sm" rows={6} placeholder="/* Seu CSS aqui */" value={config.custom_css} onChange={e => setConfig({ ...config, custom_css: e.target.value })} /></div>
                   <div><label className="text-sm text-gray-600 mb-1 block">JavaScript Personalizado</label><textarea className="input-field font-mono text-sm" rows={6} placeholder="// Seu JS aqui" value={config.custom_js} onChange={e => setConfig({ ...config, custom_js: e.target.value })} /></div>
-                  <div><label className="text-sm text-gray-600 mb-1 block">Link de Redirecionamento</label><input className="input-field" placeholder="https://..." value={config.redirect_url} onChange={e => setConfig({ ...config, redirect_url: e.target.value })} /><p className="text-xs text-gray-400 mt-1">Após a compra, redirecionar para esta URL</p></div>
+                  <div><label className="text-sm text-gray-600 mb-1 block">Link de Redirecionamento (pós-compra)</label><input className="input-field" placeholder="https://..." value={config.redirect_url} onChange={e => setConfig({ ...config, redirect_url: e.target.value })} /><p className="text-xs text-gray-400 mt-1">Cliente será redirecionado após pagamento confirmado</p></div>
+                  <div><label className="text-sm text-gray-600 mb-1 block">Link de Afiliado / Produto</label><input className="input-field" placeholder="https://..." value={config.affiliate_link} onChange={e => setConfig({ ...config, affiliate_link: e.target.value })} /><p className="text-xs text-gray-400 mt-1">Link do produto afiliado (Hotmart, Monetizze, Eduzz, etc.)</p></div>
+                  <div className="border-t border-gray-100 pt-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Exportar Dados</h3>
+                    <button onClick={() => { const data = JSON.stringify(config, null, 2); navigator.clipboard.writeText(data); toast.success('Config exportada!'); }} className="btn-secondary text-sm">Copiar Config</button>
+                  </div>
                 </div>
               )}
             </div>
