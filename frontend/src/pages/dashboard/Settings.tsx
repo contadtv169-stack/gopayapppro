@@ -83,43 +83,40 @@ export default function Settings() {
       const apiKey = creds.clientId || creds.apiKey || '';
       const secret = creds.clientSecret || creds.secret || '';
       const payload = { user_id: uid, gateway, encrypted_api_key: apiKey, encrypted_secret: secret, is_active: true };
-      let saved = false;
-      let lastError = '';
-      // Strategy 1: Try SECURITY DEFINER function (bypasses RLS)
-      try {
-        const { error: fnErr } = await supabase.rpc('upsert_gateway_credential', { p_user_id: uid, p_gateway: gateway, p_encrypted_api_key: apiKey, p_encrypted_secret: secret });
-        if (!fnErr) saved = true;
-        else lastError = fnErr.message;
-      } catch {}
-      // Strategy 2: Try direct upsert
-      if (!saved) {
-        try {
-          const { error: upsertErr } = await supabase.from('gateway_credentials').upsert(payload, { onConflict: 'user_id,gateway' });
-          if (!upsertErr) saved = true;
-          else lastError = upsertErr.message;
-        } catch {}
-      }
-      // Strategy 3: Try delete + insert
-      if (!saved) {
-        try {
-          await supabase.from('gateway_credentials').delete().eq('user_id', uid).eq('gateway', gateway);
-          const { error: insertErr } = await supabase.from('gateway_credentials').insert(payload);
-          if (!insertErr) saved = true;
-          else lastError = insertErr.message;
-        } catch {}
-      }
-      // Strategy 4: Store locally
-      if (!saved) {
-        const local = JSON.parse(localStorage.getItem('gopay_gateways') || '{}');
-        local[gateway] = { ...payload, savedAt: new Date().toISOString() };
-        localStorage.setItem('gopay_gateways', JSON.stringify(local));
-        saved = true;
-        toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo localmente! Execute a SQL migration no Supabase para salvar no banco.`);
-      }
-      if (saved) {
+
+      // Try SECURITY DEFINER function first (bypasses RLS)
+      const { error: rpcErr } = await supabase.rpc('upsert_gateway_credential', {
+        p_user_id: uid, p_gateway: gateway, p_encrypted_api_key: apiKey, p_encrypted_secret: secret,
+      });
+      if (!rpcErr) {
         setGateways(prev => ({ ...prev, [gateway]: { isActive: true } }));
-        if (lastError && !lastError.includes('violates')) toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo!`);
+        toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo no Supabase!`);
+        return;
       }
+      // RPC failed - try direct upsert (needs UPDATE policy)
+      const { error: upsertErr } = await supabase.from('gateway_credentials').upsert(payload, { onConflict: 'user_id,gateway' });
+      if (!upsertErr) {
+        setGateways(prev => ({ ...prev, [gateway]: { isActive: true } }));
+        toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo no Supabase!`);
+        return;
+      }
+      // Upsert failed - try delete + insert
+      if (upsertErr.message?.includes('violates row-level security') || upsertErr.code === '40342' || upsertErr.message?.includes('duplicate')) {
+        const { error: delErr } = await supabase.from('gateway_credentials').delete().eq('user_id', uid).eq('gateway', gateway);
+        if (!delErr) {
+          const { error: insErr } = await supabase.from('gateway_credentials').insert(payload);
+          if (!insErr) {
+            setGateways(prev => ({ ...prev, [gateway]: { isActive: true } }));
+            toast.success(`${gatewayInfo[gateway as keyof typeof gatewayInfo].name} salvo no Supabase!`);
+            return;
+          }
+        }
+      }
+      // All strategies failed - show exact SQL to run
+      const gwName = gatewayInfo[gateway as keyof typeof gatewayInfo].name;
+      const sql = `CREATE POLICY "users_update_own_gateways" ON gateway_credentials FOR UPDATE USING (auth.uid() = user_id); CREATE POLICY "users_delete_own_gateways" ON gateway_credentials FOR DELETE USING (auth.uid() = user_id);`;
+      navigator.clipboard.writeText(sql);
+      toast.success(`SQL copiado! Cole no Supabase SQL Editor para salvar ${gwName}.`, { duration: 10000 });
     } catch (err: any) { toast.error(err.message || 'Erro ao salvar'); }
   };
 
