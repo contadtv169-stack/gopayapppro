@@ -53,9 +53,10 @@ interface Props {
   imageUrl: string;
   onSave: (dataUrl: string) => void;
   onClose: () => void;
+  useAI?: boolean;
 }
 
-export default function PhotoEditorPro({ imageUrl, onSave, onClose }: Props) {
+export default function PhotoEditorPro({ imageUrl, onSave, onClose, useAI = true }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cropRef = useRef<HTMLDivElement>(null);
@@ -473,7 +474,7 @@ export default function PhotoEditorPro({ imageUrl, onSave, onClose }: Props) {
             { id: 'filters' as Tool, icon: Filter, label: 'Filtros' },
             { id: 'crop' as Tool, icon: Crop, label: 'Cortar' },
             { id: 'rotate' as Tool, icon: RotateCw, label: 'Girar' },
-            { id: 'ai' as Tool, icon: Sparkles, label: 'IA' },
+            ...(useAI ? [{ id: 'ai' as Tool, icon: Sparkles, label: 'IA' }] : []),
           ].map(t => (
             <button key={t.id} onClick={() => { setTool(t.id); if (t.id !== 'crop') setCropping(false); }}
               className={`w-12 h-12 flex flex-col items-center justify-center rounded-xl transition-all gap-0.5 ${tool === t.id ? 'bg-go-600/20 text-go-400' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'}`}>
@@ -600,7 +601,7 @@ export default function PhotoEditorPro({ imageUrl, onSave, onClose }: Props) {
             </div>
           )}
 
-          {tool === 'ai' && (
+          {tool === 'ai' && useAI && (
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-go-400" />Ferramentas IA</h3>
               <button onClick={analyzeImage} disabled={aiLoading} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-go-600 to-purple-600 text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">

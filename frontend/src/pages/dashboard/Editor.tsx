@@ -4,7 +4,7 @@ import {
   Palette, Image, Type, Video, Layout, Star, HelpCircle, 
   Eye, EyeOff, Save, Upload, Plus, Trash2,
   ChevronDown, ChevronUp, Monitor, Smartphone, 
-  X, Check, Play, Link, Loader2, DollarSign, Package, Crop
+  X, Check, Play, Link, Loader2, DollarSign, Package, Crop, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AIChat } from '../../components/AIChat';
@@ -90,7 +90,8 @@ export default function Editor() {
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
 
   // Photo editor state
-  const [photoEditor, setPhotoEditor] = useState<{ open: boolean; url: string; idx?: number }>({ open: false, url: '' });
+  const [photoEditor, setPhotoEditor] = useState<{ open: boolean; url: string; idx?: number; useAI?: boolean }>({ open: false, url: '' });
+  const [usePhotoAI, setUsePhotoAI] = useState(true);
 
   useEffect(() => {
     getProducts().then(setProducts).catch(() => {});
@@ -147,7 +148,7 @@ export default function Editor() {
   };
 
   const openPhotoEditor = (url: string, idx?: number) => {
-    setPhotoEditor({ open: true, url, idx });
+    setPhotoEditor({ open: true, url, idx, useAI: usePhotoAI });
   };
 
   const saveEditedPhoto = (dataUrl: string) => {
@@ -439,8 +440,13 @@ export default function Editor() {
               {/* Photoshop tab */}
               {activeTab === 'photoshop' && (
                 <div className="space-y-6">
-                  <h2 className="text-lg font-semibold flex items-center gap-2"><Image className="w-5 h-5 text-go-500" /> Editor de Fotos Profissional</h2>
-                  <p className="text-sm text-gray-500">Edite suas imagens com ferramentas profissionais e IA. Ajuste brilho, contraste, filtros, corte, remoção de fundo e muito mais.</p>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold flex items-center gap-2"><Image className="w-5 h-5 text-go-500" /> Editor de Fotos Profissional</h2>
+                    <button onClick={() => setUsePhotoAI(!usePhotoAI)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${usePhotoAI ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                      <Sparkles className={`w-4 h-4 ${usePhotoAI ? 'text-purple-600' : 'text-gray-400'}`} /> {usePhotoAI ? 'IA Ativada' : 'IA Desativada'}
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500">Edite suas imagens com ferramentas profissionais{usePhotoAI ? ' e IA' : ''}. Ajuste brilho, contraste, filtros, corte{usePhotoAI ? ', remoção de fundo' : ''} e muito mais.</p>
                   <div className="grid grid-cols-2 gap-4">
                     {config.banner_url && (
                       <div className="relative group rounded-xl overflow-hidden border">
@@ -474,10 +480,10 @@ export default function Editor() {
                       <div className="flex items-center gap-1">🌈 Filtros (vintage, cinema, HDR, etc.)</div>
                       <div className="flex items-center gap-1">✂️ Corte com proporções</div>
                       <div className="flex items-center gap-1">🔄 Rotação e espelhamento</div>
-                      <div className="flex items-center gap-1">🤖 Ajuste Inteligente com IA</div>
-                      <div className="flex items-center gap-1">🗑️ Remover fundo automaticamente</div>
-                      <div className="flex items-center gap-1">💡 Sugestão de filtro por IA</div>
-                      <div className="flex items-center gap-1">📝 Gerar prompt para DALL-E/Midjourney</div>
+                      {usePhotoAI && <div className="flex items-center gap-1">🤖 Ajuste Inteligente com IA</div>}
+                      {usePhotoAI && <div className="flex items-center gap-1">🗑️ Remover fundo automaticamente</div>}
+                      {usePhotoAI && <div className="flex items-center gap-1">💡 Sugestão de filtro por IA</div>}
+                      {usePhotoAI && <div className="flex items-center gap-1">📝 Gerar prompt para DALL-E/Midjourney</div>}
                     </div>
                   </div>
                 </div>
@@ -488,10 +494,16 @@ export default function Editor() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold flex items-center gap-2"><Layout className="w-5 h-5 text-go-500" /> Landing Page</h2>
-                    <button onClick={() => {
-                      const newSection = { id: Date.now().toString(), type: 'hero', title: 'Nova Seção', subtitle: '', content: '', image_url: '', bg_color: '#ffffff', text_color: '#111827', button_text: 'Comprar agora', button_url: '', button_color: '#22c55e', enabled: true };
-                      setConfig({ ...config, landing_sections: [...config.landing_sections, newSection] });
-                    }} className="btn-primary text-sm !py-2 flex items-center gap-1"><Plus className="w-4 h-4" /> Adicionar Seção</button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}#/editor-landing?product=${selectedProduct}`;
+                        window.open(url, '_blank', 'width=1200,height=800');
+                      }} className="btn-secondary text-sm !py-2 flex items-center gap-1"><Layout className="w-4 h-4" /> Abrir Editor Completo</button>
+                      <button onClick={() => {
+                        const newSection = { id: Date.now().toString(), type: 'hero', title: 'Nova Seção', subtitle: '', content: '', image_url: '', bg_color: '#ffffff', text_color: '#111827', button_text: 'Comprar agora', button_url: '', button_color: '#22c55e', enabled: true };
+                        setConfig({ ...config, landing_sections: [...config.landing_sections, newSection] });
+                      }} className="btn-primary text-sm !py-2 flex items-center gap-1"><Plus className="w-4 h-4" /> Adicionar Seção</button>
+                    </div>
                   </div>
 
                   {config.landing_sections.length === 0 ? (
@@ -810,6 +822,7 @@ export default function Editor() {
           imageUrl={photoEditor.url}
           onSave={saveEditedPhoto}
           onClose={() => setPhotoEditor({ open: false, url: '' })}
+          useAI={photoEditor.useAI}
         />
       )}
       <AIChat context="editor" />

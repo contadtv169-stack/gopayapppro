@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, Check } from 'lucide-react';
+import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, Check, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getCheckoutLink, createCheckoutOrder, getOrderStatus } from '../services/checkoutService';
+import { getCheckoutLink, createCheckoutOrder, getOrderStatus, getConnectedGateways } from '../services/checkoutService';
+
+const GATEWAY_INFO: Record<string, { name: string; icon: string; color: string }> = {
+  kryptgateway: { name: 'KryptGateway', icon: '🔐', color: '#6366f1' },
+  abacatepay: { name: 'AbacatePay', icon: '🥑', color: '#22c55e' },
+  pixgo: { name: 'PixGo', icon: '💳', color: '#f59e0b' },
+  gopay: { name: 'Pix GoPay', icon: '💚', color: '#10b981' },
+};
 
 export default function PaymentLinkPage() {
   const { slug } = useParams();
@@ -15,6 +22,9 @@ export default function PaymentLinkPage() {
   const [timeLeft, setTimeLeft] = useState(1200);
   const [orderStatus, setOrderStatus] = useState('');
   const [error, setError] = useState('');
+  const [availableGateways, setAvailableGateways] = useState<any[]>([]);
+  const [selectedGateway, setSelectedGateway] = useState('gopay');
+  const [loadingGateways, setLoadingGateways] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
@@ -22,7 +32,13 @@ export default function PaymentLinkPage() {
       const l = await getCheckoutLink(slug);
       if (!l) { setLoading(false); setError('Link não encontrado'); return; }
       setLink(l);
+      if (l?.user_id) {
+        const gws = await getConnectedGateways(l.user_id);
+        setAvailableGateways(gws);
+        if (gws.length > 0) setSelectedGateway(gws[0].gateway);
+      }
       setLoading(false);
+      setLoadingGateways(false);
     })();
   }, [slug]);
 
@@ -57,6 +73,7 @@ export default function PaymentLinkPage() {
         customer_phone: customer.phone,
         customer_document: customer.document,
         amount: Number(link.amount),
+        preferred_gateway: selectedGateway !== 'gopay' ? selectedGateway : undefined,
       });
       setPayment(order);
       setOrderStatus(order.status);
@@ -95,9 +112,6 @@ export default function PaymentLinkPage() {
                   <span className="text-lg font-bold text-gray-400">R$ {installment(Number(link.amount)).toFixed(2)}</span>
                 </div>
                 <div className="text-3xl font-extrabold mb-2" style={{ color: '#10b981' }}>R$ {Number(link.amount).toFixed(2)} à vista</div>
-                <div className="flex items-center gap-2 text-sm text-gray-400 mt-1">
-                  <Check className="w-3.5 h-3.5 text-go-500" /> Pagamento 100% seguro
-                </div>
               </div>
             </div>
 
@@ -112,20 +126,41 @@ export default function PaymentLinkPage() {
                 <input className="input-field" placeholder="Telefone" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
                 <input className="input-field" placeholder="CPF" value={customer.document} onChange={e => setCustomer({...customer, document: e.target.value})} />
 
-                <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 mt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <DollarSign className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Pix</p>
-                      <p className="text-xs text-gray-500">Pagamento instantâneo</p>
-                    </div>
-                    <div className="ml-auto w-5 h-5 rounded-full border-2 border-green-500 flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                    </div>
+                {loadingGateways ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-400 py-2"><Loader2 className="w-4 h-4 animate-spin" /> Carregando formas de pagamento...</div>
+                ) : (
+                  <div className="space-y-2 mt-2">
+                    <p className="text-sm font-medium text-gray-700">Forma de Pagamento</p>
+                    {availableGateways.map((gw: any) => {
+                      const meta = GATEWAY_INFO[gw.gateway] || { name: gw.gateway, icon: '🔗', color: '#6b7280' };
+                      return (
+                        <label key={gw.gateway} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedGateway === gw.gateway ? 'border-go-500 bg-go-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                          <input type="radio" name="gateway" value={gw.gateway} checked={selectedGateway === gw.gateway} onChange={() => setSelectedGateway(gw.gateway)} className="hidden" />
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: meta.color + '20' }}><span>{meta.icon}</span></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{meta.name}</p>
+                            <p className="text-xs text-gray-500">Pagamento via Pix processado por {meta.name}</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedGateway === gw.gateway ? 'border-go-500' : 'border-gray-300'}`}>
+                            {selectedGateway === gw.gateway && <div className="w-2.5 h-2.5 rounded-full bg-go-500" />}
+                          </div>
+                        </label>
+                      );
+                    })}
+                    <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedGateway === 'gopay' ? 'border-go-500 bg-go-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                      <input type="radio" name="gateway" value="gopay" checked={selectedGateway === 'gopay'} onChange={() => setSelectedGateway('gopay')} className="hidden" />
+                      <div className="w-10 h-10 bg-go-100 rounded-xl flex items-center justify-center"><DollarSign className="w-6 h-6 text-go-600" /></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Pix GoPay</p>
+                        <p className="text-xs text-gray-500">Pagamento instantâneo processado pelo GoPay</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedGateway === 'gopay' ? 'border-go-500' : 'border-gray-300'}`}>
+                        {selectedGateway === 'gopay' && <div className="w-2.5 h-2.5 rounded-full bg-go-500" />}
+                      </div>
+                    </label>
+                    <div className="flex items-center gap-2 text-xs text-gray-400 pt-1"><ShieldCheck className="w-3.5 h-3.5 text-go-500" /> Pagamento 100% seguro</div>
                   </div>
-                </div>
+                )}
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button type="submit" disabled={processing} className="w-full flex items-center justify-center gap-2 text-lg !py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
