@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, ShieldCheck, HelpCircle } from 'lucide-react';
+import { DollarSign, Copy, CheckCircle, Clock, ArrowLeft, AlertCircle, Loader2, ShieldCheck, Star, Play } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../services/supabase';
 import { getCheckoutProduct, getCheckoutCustomizations, createCheckoutOrder, getOrderStatus, getSellerProfile } from '../services/checkoutService';
@@ -65,7 +65,6 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.name) return toast.error('Nome é obrigatório');
-    if (Number(product.price) < 10) return toast.error('Valor mínimo é R$ 10,00');
     setProcessing(true);
     setError('');
     try {
@@ -246,24 +245,35 @@ export default function CheckoutPage() {
                     <span className="text-xs text-gray-400">12x de</span>
                     <span className="text-lg font-bold text-gray-400">R$ {installment(product).toFixed(2)}</span>
                   </div>
-                  <div className="text-3xl font-extrabold mb-2" style={{ color: pc }}>R$ {Number(product.price).toFixed(2)} à vista</div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full">Taxa GoPay: R$ 7,00</span>
-                    <span className="relative group cursor-help"><HelpCircle className="w-3 h-3 text-gray-300" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Taxa fixa de R$ 7 por transação</span></span>
-                  </div>
+                  <div className="text-3xl font-extrabold mb-4" style={{ color: pc }}>R$ {Number(product.price).toFixed(2)} à vista</div>
 
-                  {cfg.video_url && (
-                    <div className="mb-5 aspect-video bg-gray-100 rounded-xl flex items-center justify-center">
-                      <a href={cfg.video_url} target="_blank" className="flex items-center gap-2" style={{ color: pc }}>
-                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg> <span className="text-sm">Assistir Vídeo</span>
-                      </a>
+                  {(cfg.video_url && !cfg.gallery_images?.length) ? (
+                    <div className="mb-5 aspect-video bg-gray-100 rounded-xl overflow-hidden">
+                      {cfg.video_url.includes('youtube.com') || cfg.video_url.includes('youtu.be') ? (
+                        <iframe src={cfg.video_url.replace('watch?v=', 'embed/')} className="w-full h-full" allowFullScreen />
+                      ) : cfg.video_url.includes('vimeo.com') ? (
+                        <iframe src={cfg.video_url.replace('vimeo.com', 'player.vimeo.com/video')} className="w-full h-full" allowFullScreen />
+                      ) : (
+                        <a href={cfg.video_url} target="_blank" className="w-full h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors">
+                          <Play className="w-12 h-12 text-gray-400" />
+                        </a>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
                   {cfg.gallery_images?.length > 0 && (
                     <div className="mb-5 grid grid-cols-2 gap-2">
-                      {cfg.gallery_images.slice(0, 4).map((img: string, idx: number) => (
-                        <img key={idx} src={img} alt="" className="rounded-xl w-full h-24 object-cover" />
+                      {cfg.gallery_images.slice(0, 6).map((item: any, idx: number) => (
+                        typeof item === 'string' ? (
+                          <img key={idx} src={item} alt="" className="rounded-xl w-full h-24 object-cover" />
+                        ) : item?.type === 'video' ? (
+                          <div key={idx} className="rounded-xl w-full h-24 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+                            {item.thumbnail ? <img src={item.thumbnail} alt="" className="absolute inset-0 w-full h-full object-cover" /> : null}
+                            <Play className="w-8 h-8 text-white drop-shadow-lg relative z-10" />
+                          </div>
+                        ) : (
+                          <img key={idx} src={item?.url || item} alt="" className="rounded-xl w-full h-24 object-cover" />
+                        )
                       ))}
                     </div>
                   )}
@@ -271,19 +281,23 @@ export default function CheckoutPage() {
                   {cfg.reviews_enabled && cfg.reviews?.length > 0 && (
                     <div className="border-t border-gray-100 pt-4 mt-4">
                       <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> Avaliações ({cfg.reviews.length})
+                        <Star className="w-4 h-4 text-yellow-400 fill-current" /> Avaliações ({cfg.reviews.length})
                       </h3>
-                      {cfg.reviews.slice(0, 3).map((r: any, idx: number) => (
-                        <div key={idx} className="border-b border-gray-50 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{r.name}</span>
-                            <div className="flex">{Array.from({length: 5}).map((_, i) => (
-                              <svg key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                            ))}</div>
+                      <div className="space-y-3">
+                        {cfg.reviews.slice(0, 5).map((r: any, idx: number) => (
+                          <div key={idx} className="border-b border-gray-50 pb-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              {r.avatar ? <img src={r.avatar} alt="" className="w-6 h-6 rounded-full object-cover" /> : <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">{r.name?.[0]}</div>}
+                              <span className="text-sm font-medium">{r.name}</span>
+                              <div className="flex">{Array.from({length: 5}).map((_, i) => (
+                                <Star key={i} className={`w-3 h-3 ${i < r.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                              ))}</div>
+                            </div>
+                            {r.photo && <img src={r.photo} alt="Review" className="w-20 h-20 rounded-xl object-cover mb-1" />}
+                            <p className="text-xs text-gray-500">{r.comment}</p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{r.comment}</p>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -299,13 +313,6 @@ export default function CheckoutPage() {
                   <input className="input-field" placeholder="Email" type="email" value={customer.email} onChange={e => setCustomer({...customer, email: e.target.value})} />
                   <input className="input-field" placeholder="Telefone" value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
                   <input className="input-field" placeholder="CPF" value={customer.document} onChange={e => setCustomer({...customer, document: e.target.value})} />
-
-                  {Number(product.price) < 19 && (
-                    <div className="flex items-start gap-2 p-3 bg-yellow-50 text-yellow-700 rounded-xl border border-yellow-200 text-xs">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>Valor abaixo de R$ 19,00. A taxa GoPay de R$ 7,00 será descontada, resultando em <strong>R$ {Math.max(0, Number(product.price) - 7).toFixed(2)}</strong> para você.</span>
-                    </div>
-                  )}
 
                   <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-go-500 bg-go-50">
                     <div className="w-10 h-10 bg-go-100 rounded-xl flex items-center justify-center"><DollarSign className="w-6 h-6 text-go-600" /></div>
@@ -371,7 +378,6 @@ export default function CheckoutPage() {
                   )}
                   <div className="text-center border-t border-gray-100 pt-4">
                     <p className="text-sm text-gray-500">Valor: <strong className="text-gray-900">R$ {Number(payment.amount).toFixed(2)}</strong></p>
-                    <p className="text-xs text-gray-400 mt-1">Taxa GoPay: R$ 7,00</p>
                     <div className="flex items-center justify-center gap-2 text-sm text-gray-400 mt-2"><Loader2 className="w-4 h-4 animate-spin" /> Aguardando pagamento...</div>
                   </div>
                 </div>

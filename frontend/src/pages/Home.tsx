@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Shield, Smartphone, Link as LinkIcon, BarChart3, CreditCard, Check, ArrowRight, Menu, X, DollarSign } from 'lucide-react';
+import { Zap, Shield, Smartphone, Link as LinkIcon, BarChart3, CreditCard, Check, ArrowRight, Menu, X, DollarSign, Star, Trophy, TrendingUp, Diamond, Award, Heart } from 'lucide-react';
 import { AIChat } from '../components/AIChat';
 import { PWAInstall } from '../components/PWAInstall';
 
@@ -29,6 +29,7 @@ export default function Home() {
             </Link>
             <div className="hidden md:flex items-center gap-6">
               <a href="#beneficios" className="text-gray-600 hover:text-gray-900">Benefícios</a>
+              <a href="#placas" className="text-gray-600 hover:text-gray-900">Placas</a>
               <a href="#taxa" className="text-gray-600 hover:text-gray-900">Taxas</a>
               <Link to="/login" className="text-gray-600 hover:text-gray-900">Entrar</Link>
               <Link to="/register" className="btn-primary text-sm !py-2 !px-5">Criar Conta Grátis</Link>
@@ -41,6 +42,7 @@ export default function Home() {
         {menuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 p-4 flex flex-col gap-3">
             <a href="#beneficios" className="text-gray-600 py-2" onClick={() => setMenuOpen(false)}>Benefícios</a>
+            <a href="#placas" className="text-gray-600 py-2" onClick={() => setMenuOpen(false)}>Placas</a>
             <a href="#taxa" className="text-gray-600 py-2" onClick={() => setMenuOpen(false)}>Taxas</a>
             <Link to="/login" className="text-gray-600 py-2" onClick={() => setMenuOpen(false)}>Entrar</Link>
             <Link to="/register" className="btn-primary text-center" onClick={() => setMenuOpen(false)}>Criar Conta Grátis</Link>
@@ -98,6 +100,40 @@ export default function Home() {
                 <p className="text-gray-600">{b.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="placas" className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Conquistas e Metas</h2>
+            <p className="text-xl text-gray-600">Ganhe placas exclusivas ao atingir suas metas de vendas.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { name: 'Primeira Venda', icon: Star, colors: { bg: '#fef3e2', border: '#d4a373', gradient: 'linear-gradient(135deg, #cd7f32, #b87333)', text: '#9c6b3e' }, desc: '1 venda' },
+              { name: '5 Vendas', icon: TrendingUp, colors: { bg: '#f0f4f8', border: '#94a3b8', gradient: 'linear-gradient(135deg, #c0c0c0, #a8a8a8)', text: '#64748b' }, desc: '5 vendas' },
+              { name: '10 Vendas', icon: Award, colors: { bg: '#fef9e7', border: '#f0d060', gradient: 'linear-gradient(135deg, #ffd700, #daa520)', text: '#b8860b' }, desc: '10 vendas' },
+              { name: '100 Vendas', icon: Diamond, colors: { bg: '#e8f0fe', border: '#3b82f6', gradient: 'linear-gradient(135deg, #b9f2ff, #87ceeb)', text: '#1a5276' }, desc: '100 vendas' },
+              { name: 'Cliente Fiel', icon: Heart, colors: { bg: '#fef2f2', border: '#f87171', gradient: 'linear-gradient(135deg, #e0115f, #c21e56)', text: '#991b1b' }, desc: '3x mesmo cliente' },
+            ].map((p, i) => {
+              const Icon = p.icon;
+              return (
+                <div key={i} className="rounded-2xl overflow-hidden border-2 text-center p-5 transition-all hover:shadow-lg hover:scale-105" style={{ borderColor: p.colors.border, background: p.colors.bg }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: p.colors.gradient }}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="font-bold text-sm" style={{ color: p.colors.text }}>{p.name}</h3>
+                  <p className="text-xs mt-1 opacity-70" style={{ color: p.colors.text }}>{p.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-center mt-10">
+            <Link to="/dashboard/placas" className="inline-flex items-center gap-2 text-go-600 font-semibold hover:text-go-700">
+              Ver todas as placas <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>

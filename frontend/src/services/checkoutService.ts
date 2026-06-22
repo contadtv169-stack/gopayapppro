@@ -18,7 +18,7 @@ function getSellerPixKey(sellerId?: string) {
     const u = localStorage.getItem('gopay_user');
     if (u) {
       const parsed = JSON.parse(u);
-      return parsed.pix_key || parsed.phone || parsed.email || '';
+      return parsed.phone || parsed.pix_key || parsed.email || '';
     }
   } catch {}
   return '';

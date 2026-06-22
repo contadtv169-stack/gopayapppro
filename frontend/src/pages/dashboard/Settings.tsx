@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { Save, User, Loader2, Camera, Trash2, Smartphone, DollarSign } from 'lucide-react';
+import { Save, User, Loader2, Camera, Trash2, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import NotificationSettings from './NotificationSettings';
 
 export default function Settings() {
-  const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', avatar_url: '', pix_key: '' });
+  const [profile, setProfile] = useState({ name: '', email: '', phone: '', document: '', business_name: '', avatar_url: '' });
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,7 +33,6 @@ export default function Settings() {
           document: profile.document,
           business_name: profile.business_name,
           avatar_url: avatarPreview,
-          pix_key: profile.pix_key,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
         if (error) console.warn('Profiles upsert error:', error.message);
@@ -106,18 +105,16 @@ export default function Settings() {
             { key: 'email', label: 'Email', disabled: true },
             { key: 'phone', label: 'Telefone (Chave Pix)' },
             { key: 'document', label: 'CPF/CNPJ' },
-            { key: 'pix_key', label: 'Chave Pix (outra)' },
             { key: 'business_name', label: 'Nome da Conta / Loja' },
           ].map(f => (
             <div key={f.key}>
               <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
               <div className="relative">
                 {f.key === 'phone' && <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />}
-                {f.key === 'pix_key' && <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />}
                 <input value={(profile as any)[f.key] || ''} onChange={e => setProfile({ ...profile, [f.key]: e.target.value })}
-                  className={`input-field ${f.key === 'phone' || f.key === 'pix_key' ? 'pl-9' : ''}`}
+                  className={`input-field ${f.key === 'phone' ? 'pl-9' : ''}`}
                   disabled={(f as any).disabled}
-                  placeholder={f.key === 'phone' ? '(11) 99999-9999' : f.key === 'pix_key' ? 'CPF, email ou aleatória' : ''} />
+                  placeholder={f.key === 'phone' ? 'Telefone com DDD (chave Pix)' : ''} />
               </div>
             </div>
           ))}
@@ -134,7 +131,7 @@ export default function Settings() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900">GoPay Pix</h3>
-            <p className="text-sm text-gray-500">Seu telefone e chave Pix serão usados para receber pagamentos. Taxa de R$ 7 por transação.</p>
+            <p className="text-sm text-gray-500">Seu telefone será usado como chave Pix para receber pagamentos.</p>
           </div>
         </div>
       </div>
