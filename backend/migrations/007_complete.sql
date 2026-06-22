@@ -305,6 +305,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- Gateway upsert function
+DROP FUNCTION IF EXISTS upsert_gateway_credential(UUID, VARCHAR, TEXT, TEXT) CASCADE;
 CREATE OR REPLACE FUNCTION upsert_gateway_credential(
   p_user_id UUID,
   p_gateway VARCHAR,
